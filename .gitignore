@@ -1,0 +1,5 @@
+project/
+.opencode/
+.venv/
+__pycache__
+opencode.json
