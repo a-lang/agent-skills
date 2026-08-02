@@ -102,3 +102,11 @@ uv run python3 skills/l10n-tw/scripts/regression_test.py                   # 回
 ```
 
 詳細情境流程見 `skills/l10n-tw/SKILL.md`。
+
+### 翻譯者身份（Last-Translator）
+
+生成 PO 時，翻譯者身份依序從以下來源解析：CLI `--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `skills/l10n-tw/.env` 設定檔；皆無時使用佔位符並警告。永久保留請寫入 `skills/l10n-tw/.env`（已被 `.gitignore` 排除，不會被提交）：
+
+```bash
+echo 'L10N_TW_TRANSLATOR=Name <name@example.org>' >> skills/l10n-tw/.env
+```

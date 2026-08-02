@@ -47,7 +47,7 @@ uv run python3 skills/l10n-tw/scripts/fix_terminology.py <path/to/translations.p
 ## 閘門（審查點）——依 SKILL.md
 
 所有四項操作在執行前都需要使用者確認：
-1. 翻譯計畫（來源格式／條數／情境流程／既有翻譯去留／提交方式）
+1. 翻譯計畫（來源格式／條數／情境流程／既有翻譯去留／提交方式／翻譯者身份）
 2. 生成的 PO 檔案輸出
 3. git diff + commit message
 4. PR title + body 草稿

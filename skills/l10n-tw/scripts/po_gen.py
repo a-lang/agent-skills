@@ -24,15 +24,33 @@ import sys
 import json
 import argparse
 from datetime import datetime
+from pathlib import Path
 
 # ── Default translations (can be overridden via -t/--translations) ──────────
 # Projects should create their own translations.py and import from there.
 # This dict serves as a fallback / demo.
 TRANSLATIONS: dict[str, str] = {}
-TRANSLATOR = "Alang Hsu <alang.hsu@gmail.com>"
+TRANSLATOR = "Translator Name <translator@example.org>"
 LANGUAGE = "zh_TW"
 LANGUAGE_TEAM = "Chinese (Traditional)"
 X_GENERATOR = "Hermes Agent + po_gen.py"
+
+
+def resolve_translator(cli_value: str | None) -> str:
+    """Resolve Last-Translator: CLI arg > L10N_TW_TRANSLATOR env > skill .env > placeholder."""
+    value = cli_value or os.environ.get("L10N_TW_TRANSLATOR")
+    if value:
+        return value
+    env_file = Path(__file__).resolve().parent.parent / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("L10N_TW_TRANSLATOR="):
+                v = line.split("=", 1)[1].strip().strip('"').strip("'")
+                if v:
+                    return v
+    print("⚠️  No translator specified (--translator / L10N_TW_TRANSLATOR / skills/l10n-tw/.env). Using placeholder.")
+    return TRANSLATOR
 
 
 # ── PO string encoding / decoding ─────────────────────────────────────────
@@ -418,7 +436,7 @@ Examples:
     parser.add_argument('-j', '--json', help='Path to translations.json')
     parser.add_argument('-o', '--output', help='Output PO file path (default: auto-derived from pot name)')
     parser.add_argument('-l', '--language', default=LANGUAGE, help=f'Language code (default: {LANGUAGE})')
-    parser.add_argument('--translator', default=TRANSLATOR, help=f'Translator name (default: {TRANSLATOR})')
+    parser.add_argument('--translator', default=None, help='Translator name (default: resolve from L10N_TW_TRANSLATOR env / skill .env)')
     parser.add_argument('--team', default=LANGUAGE_TEAM, help=f'Language team (default: {LANGUAGE_TEAM})')
 
     args = parser.parse_args()
@@ -444,16 +462,17 @@ Examples:
         base = base.replace('@', '-')
         output_path = os.path.join(pot_dir, f"{base}.{args.language}.po")
 
+    translator = resolve_translator(args.translator)
     print(f"Generating: {args.pot} → {output_path}")
     print(f"Language:   {args.language}")
-    print(f"Translator: {args.translator}")
+    print(f"Translator: {translator}")
     print()
 
     po_content = generate_po(
         args.pot,
         translations,
         language=args.language,
-        translator=args.translator,
+        translator=translator,
         team=args.team,
     )
 

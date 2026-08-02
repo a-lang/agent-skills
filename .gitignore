@@ -3,3 +3,4 @@ project/
 .venv/
 __pycache__
 opencode.json
+skills/l10n-tw/.env

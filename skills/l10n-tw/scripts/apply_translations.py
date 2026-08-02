@@ -22,14 +22,32 @@ Features:
 
 import argparse
 import json
+import os
 import re
 import sys
 from datetime import datetime
 from pathlib import Path
 
-TRANSLATOR = "Alang Hsu <alang.hsu@gmail.com>"
+TRANSLATOR = "Translator Name <translator@example.org>"
 LANGUAGE = "zh_TW"
 X_GENERATOR = "Hermes Agent + apply_translations.py"
+
+
+def resolve_translator(cli_value: str | None) -> str:
+    """Resolve Last-Translator: CLI arg > L10N_TW_TRANSLATOR env > skill .env > placeholder."""
+    value = cli_value or os.environ.get("L10N_TW_TRANSLATOR")
+    if value:
+        return value
+    env_file = Path(__file__).resolve().parent.parent / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("L10N_TW_TRANSLATOR="):
+                v = line.split("=", 1)[1].strip().strip('"').strip("'")
+                if v:
+                    return v
+    print("⚠️  No translator specified (--translator / L10N_TW_TRANSLATOR / skills/l10n-tw/.env). Using placeholder.")
+    return TRANSLATOR
 
 
 # ── PO string helpers ────────────────────────────────────────────────────
@@ -106,12 +124,12 @@ def replace_msgstr(entry: str, new_msgstr: str) -> str:
     return '\n'.join(out)
 
 
-def update_header(entry: str) -> str:
+def update_header(entry: str, translator: str = TRANSLATOR) -> str:
     """Override date/translator fields in the header entry, keep the rest."""
     now_po = datetime.now().strftime('%Y-%m-%d %H:%M+0800')
     override = {
         'PO-Revision-Date': f'PO-Revision-Date: {now_po}',
-        'Last-Translator': f'Last-Translator: {TRANSLATOR}',
+        'Last-Translator': f'Last-Translator: {translator}',
         'Language': f'Language: {LANGUAGE}',
         'X-Generator': f'X-Generator: {X_GENERATOR}',
     }
@@ -134,9 +152,10 @@ def main():
     parser.add_argument('batch', help='Path to batch JSON ({"msgid": "msgstr"})')
     parser.add_argument('-o', '--output', required=True,
                         help='Path to target PO file (modified in place)')
-    parser.add_argument('--translator', default=TRANSLATOR,
-                        help=f'Last-Translator value (default: {TRANSLATOR})')
+    parser.add_argument('--translator', default=None,
+                        help='Last-Translator value (default: resolve from L10N_TW_TRANSLATOR env / skill .env)')
     args = parser.parse_args()
+    translator = resolve_translator(args.translator)
 
     try:
         with open(args.batch, 'r', encoding='utf-8') as f:
@@ -173,7 +192,7 @@ def main():
         if not msgid:
             # Header entry
             if i == 0:
-                entries[i] = update_header(entry)
+                entries[i] = update_header(entry, translator)
                 updated = True
             continue
 
