@@ -42,6 +42,11 @@ l10n-tw/
 > **目錄約定**：專案目錄是**動態**的，以要翻譯的 PO 或 POT 檔所在目錄為主，不綁定
 > `skills/l10n-tw/` 下的固定位置。所有非暫存產出檔案（`translations.py`、生成的 PO）
 > 須與來源 POT 或 PO 位於同一層目錄。
+>
+> **翻譯檔命名**：單一專案目錄沿用 `translations.py`；若同一目錄有多個專案
+> （多個 POT），使用 `<potstem>-translations.py` 配對 `<potstem>.pot`。
+> `regression_test.py` 依此規則探索：優先 `<potstem>-translations.py`，
+> 未配對的 POT 才回退到預設 `translations.py`。
 
 ## 核心概念
 
@@ -100,7 +105,7 @@ l10n-tw/
      <path/to/template.pot> <batch1.json> <start1> <end1>
   ```
 2. 在每個 `batchN.json` 填入譯文：`{"msgid": "正體中文翻譯"}`。
- 不要修改 msgid 與 XML 標籤。
+  - 不要修改 msgid 與 XML 標籤。
 3. 合併為 `translations.py`：
   ```bash
    uv run python3 skills/l10n-tw/scripts/merge_batches.py \
@@ -421,6 +426,7 @@ msgstr "符合規則 %2 的文章有 %1 個"
 ### Phase 3 — 生成與驗證
 
 7. 執行「通用驗證步驟」：用語修正 → `po_gen.py` → `po_verify.py` + `msgfmt` → `regression_test.py`
+  - `msgfmt` 驗證用參數：`-o /dev/null`，避免產生暫存檔 `messages.mo`
   - **完成標準：** `po_verify.py` 與 `msgfmt` 皆退出碼 0，且回歸測試所有專案 `[OK]`
 
 ### Phase 4 — 交付（事先詢問）

@@ -38,7 +38,7 @@ uv run python3 skills/l10n-tw/scripts/fix_terminology.py <path/to/translations.p
 - `po_preflight.py`：退出碼 0 = 來源檔乾淨，1 = 發現問題（軟停止，回報使用者決定修正或繼續）
 - `po_gen.py` 接受 `.py`（匯出 `TRANSLATIONS` dict）或 `.json`（透過 `-j`）作為翻譯來源
 - 腳本使用 `python3`，無需手動啟用 venv —— `uv run` 自動處理
-- 回歸測試自動探索包含 `translations.py` 與單一 `.pot` 的專案目錄
+- 回歸測試自動探索 (POT, translations 檔) 專案對：優先 `<potstem>-translations.py`，未配對的 POT 回退到預設 `translations.py`
 
 ## 專案目錄慣例
 

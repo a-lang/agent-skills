@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Regression test for translation projects.
 
-Discovers project directories automatically by scanning for folders that contain
-both a .pot file and a translations.py file. For each project, re-runs po_gen.py
-with the project's POT and translations.py, then compares the new PO's
-translations against the existing committed PO.
+Discovers project directories automatically by scanning for .pot files and
+their matching translations script. Each project is a (POT, translations.py)
+pair; for each pair, re-runs po_gen.py with the project's POT and translations
+script, then compares the new PO's translations against the existing committed
+PO.
+
+Matching rules (per directory):
+- `<potstem>-translations.py` always pairs with `<potstem>.pot`
+- `translations.py` (default name) pairs with the sole .pot in the directory
 
 Also runs po_verify.py on each (POT, generated PO) pair.
 
@@ -21,22 +26,36 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parent
 
 
-def discover_projects(root: Path) -> list[Path]:
-    """Find directories containing exactly one .pot and a translations.py."""
-    projects: list[Path] = []
-    for dirpath in root.rglob("translations.py"):
-        project_dir = dirpath.parent
-        pot_files = list(project_dir.glob("*.pot"))
-        if len(pot_files) == 1:
-            projects.append(project_dir)
-        elif len(pot_files) > 1:
-            print(f"⚠️  Skipping {project_dir}: multiple .pot files found")
-    return sorted(projects)
+def discover_projects(root: Path) -> list[tuple[Path, Path, Path]]:
+    """Find (project_dir, pot_file, translations_py) project pairs."""
+    projects: list[tuple[Path, Path, Path]] = []
+    dirs: dict[Path, list[Path]] = {}
+    for pot in root.rglob("*.pot"):
+        dirs.setdefault(pot.parent, []).append(pot)
+    for project_dir, pot_files in sorted(dirs.items()):
+        pot_files = sorted(pot_files)
+        default = project_dir / "translations.py"
+        pairs: list[tuple[Path, Path, Path]] = []
+        for pot_file in pot_files:
+            tr_py = project_dir / f"{pot_file.stem}-translations.py"
+            if tr_py.exists():
+                pairs.append((project_dir, pot_file, tr_py))
+        if default.exists():
+            paired = {pot_file for _, pot_file, _ in pairs}
+            unpaired = [p for p in pot_files if p not in paired]
+            if len(unpaired) == 1:
+                pairs.append((project_dir, unpaired[0], default))
+            elif len(unpaired) > 1:
+                print(
+                    f"⚠️  Skipping {project_dir}: multiple .pot files with default "
+                    "translations.py (use <potstem>-translations.py instead)"
+                )
+        projects.extend(pairs)
+    return sorted(projects, key=lambda p: str(p[0]))
 
 
-def find_committed_po(project_dir: Path, language: str) -> Path | None:
+def find_committed_po(project_dir: Path, pot_file: Path, language: str) -> Path | None:
     """Find the committed PO file in the project directory."""
-    pot_file = next(project_dir.glob("*.pot"))
     base = pot_file.stem
     candidates = [
         project_dir / f"{base}-{language}.po",
@@ -101,19 +120,13 @@ def main():
         return 0
 
     results = []
-    for project_dir in projects:
-        pot_file = next(project_dir.glob("*.pot"))
-        tr_py = project_dir / "translations.py"
-        committed = find_committed_po(project_dir, args.language)
+    for project_dir, pot_file, tr_py in projects:
+        committed = find_committed_po(project_dir, pot_file, args.language)
 
         print(f"\n{'='*70}")
         print(f"  {project_dir.name}")
         print('='*70)
 
-        if not tr_py.exists():
-            print(f"  ⚠️  translations.py not found: {tr_py}")
-            results.append((project_dir.name, "SKIP", "translations missing"))
-            continue
         if committed is None:
             print(f"  ⚠️  committed PO not found in {project_dir}")
             results.append((project_dir.name, "SKIP", "committed PO missing"))
