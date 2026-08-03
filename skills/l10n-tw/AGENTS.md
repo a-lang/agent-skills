@@ -30,7 +30,7 @@ uv run python3 scripts/po_to_translations.py <path/to/old-zh_TW.po> -o <path/to/
 # 合併多個批次 JSON 為 translations.py
 uv run python3 scripts/merge_batches.py <batch1.json> <batch2.json> ... -o <path/to/translations.py>
 
-# 依 terminology.md 統一用語
+# 依 references/terminology.md 統一用語
 uv run python3 scripts/fix_terminology.py <path/to/translations.py>
 ```
 
@@ -54,7 +54,7 @@ uv run python3 scripts/fix_terminology.py <path/to/translations.py>
 
 ## 語言環境命名
 
-遵循上游規則——請勿猜測。檢查現有的 PO 檔案名稱或 `LINGUAS`。詳見 `locale.md`。
+遵循上游規則——請勿猜測。檢查現有的 PO 檔案名稱或 `LINGUAS`。詳見 `references/locale.md`。
 
 ## Python 虛擬環境
 

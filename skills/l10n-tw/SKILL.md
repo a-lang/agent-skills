@@ -1,6 +1,10 @@
 ---
 name: l10n-tw
-description: 開源專案正體中文在地化的 SOP 與工具。
+description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）PO 檔的 SOP 與工具。當使用者提到翻譯、在地化、l10n、zh_TW／zh-Hant、正體中文、gettext、PO／POT 檔或 Weblate 上傳時使用。
+compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
+metadata:
+  author: l10n-tw
+  version: "1.1"
 ---
 # PO Translation — Chinese Localization Project
 
@@ -8,7 +12,7 @@ description: 開源專案正體中文在地化的 SOP 與工具。
 
 ## 參考文件
 
-翻譯前務必閱讀 [`l10n-tw-guide.md`](l10n-tw-guide.md)，內含：
+翻譯前務必閱讀 [`references/l10n-tw-guide.md`](references/l10n-tw-guide.md)，內含：
 
 - **基本守則** — 12 條翻譯品質規範（禁止機器翻譯直接提交、禁止簡轉繁不做轉換等）
 - **翻譯風格與術語訂立方法** — 情境限定直譯原則、術語發想三步驟
@@ -21,17 +25,19 @@ description: 開源專案正體中文在地化的 SOP 與工具。
 ```
 l10n-tw/
 ├── SKILL.md                        # 本文件 — 流程說明
-├── l10n-tw-guide.md                # 翻譯規範與指引（必讀）
-├── terminology.md                  # 用語對照表
-├── github.md                       # GitHub 操作參考
-├── locale.md                       # 語言環境命名策略
+├── references/
+│   ├── l10n-tw-guide.md            # 翻譯規範與指引（必讀）
+│   ├── terminology.md              # 用語對照表
+│   ├── github.md                   # GitHub 操作參考
+│   ├── locale.md                   # 語言環境命名策略
+│   └── gettext-tools.md            # gettext 工具組參考
 ├── scripts/
 │   ├── po_gen.py                   # POT + translations.py → PO
 │   ├── po_verify.py                # POT ↔ PO 驗證比對
 │   ├── po_preflight.py             # 來源檔預檢（編碼/檔頭/fuzzy/重複）
 │   ├── po_to_pot.py                # 任意 PO → POT（萃取模板）
 │   ├── po_to_translations.py       # PO → translations.py（保留舊譯文）
-│   ├── fix_terminology.py          # 依 terminology.md 修正 translations.py
+│   ├── fix_terminology.py          # 依 references/terminology.md 修正 translations.py
 │   ├── extract_batch.py            # 批次翻譯：PO/POT → 待翻譯 JSON
 │   ├── merge_batches.py            # 批次 JSON → translations.py
 │   ├── apply_translations.py       # 批次 JSON → 直接套用至 PO（替代路徑）
@@ -183,7 +189,7 @@ uv run python3 skills/l10n-tw/scripts/fix_terminology.py \
   <path/to/translations.py>
 ```
 
-預設會讀取同層的 `terminology.md`；若要指定其他術語表，用
+預設會讀取技能內 `references/terminology.md`；若要指定其他術語表，用
 `--terms <path/to/terminology.md>`。
 
 > 特別是從既有 PO 起步時，簡轉繁會帶入中國用語，必須跑過一次。
@@ -222,7 +228,7 @@ msgfmt --statistics -cv <path/to/output.po> -o /dev/null
 - No fuzzy markers
 - 註解行保留
 - `msgfmt` 無 c-format 錯誤
-- 格式符合 `l10n-tw-guide.md` 規範
+- 格式符合 `references/l10n-tw-guide.md` 規範
 
 **完成標準**：`po_verify.py` 與 `msgfmt` 皆退出碼 0。
 
@@ -269,109 +275,7 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 
 ## Gettext 工具參考
 
-本專案的 `po_gen.py` 與 `po_verify.py` 封裝了大部分 gettext 操作，以下列出手動使用 gettext 工具組的常見情境與命令，供參考與除錯使用。
-
-### 安裝 gettext
-
-```bash
-# Linux (Debian/Ubuntu)
-sudo apt install gettext
-
-# macOS
-brew install gettext
-
-# Windows (Scoop)
-scoop install gettext
-```
-
-驗證安裝：`gettext -V`
-
-### PO 檔結構說明
-
-每筆翻譯條目包含以下部分：
-
-```po
-#. Translators: 開發者留給翻譯者的提示
-#: src/main.c:123
-msgctxt "ContextMenu"       # 區別相同 msgid 的不同情境（選用）
-msgid "Split"               # 原文（不可修改）
-msgstr "分屏"               # 譯文
-```
-
-- `msgid`：原文，**不可修改**。即使有明顯錯誤也應回報上游，而非直接修改
-- `msgstr`：你的翻譯
-- `msgctxt`：當相同英文在不同情境需不同譯文時使用
-- `#.`：開發者註解（`TRANSLATORS:` 開頭提示尤為重要）
-- `#:`：原始碼位置參考
-- `#` （無後綴句點）：譯者自行留下的註解，僅供同語種譯者參考
-
-### 常用命令
-
-#### msgfmt — PO 格式編譯產出 messages.mo
-
-```bash
-msgfmt --statistics -cv zh_TW.po
-```
-
-- 編譯 PO → MO 檔（預設輸出 `messages.mo`）
-- `--statistics`：統計已翻譯/未翻譯/模糊條目數
-- `-c`：驗證 C 語言格式字串（`%s`、`%d` 是否正確對應）
-- `-v`：詳細輸出
-
-若輸出 `0 translated messages, 0 untranslated, 0 fuzzy` 以外的訊息，表示 PO 檔有問題。
-
-#### msgmerge — POT 合併與格式標準化
-
-```bash
-msgmerge --no-wrap -U zh_TW.po new.pot
-```
-
-- 將既有 `.po` 與新版 `.pot` 合併，保留已翻譯條目
-- `--no-wrap`：不自動換列
-- `-U`：直接更新檔案
-
-適用於需要手動更新現有 `.po` 的情境（`po_gen.py` 已自動處理此流程）。
-
-#### msginit — 新建 PO 檔
-
-```bash
-msginit -i template.pot -l zh_TW.UTF-8 -o zh_TW.po
-```
-
-- 從 POT 產生初始 PO 檔，自動填入檔頭資訊
-- `-i`：輸入 POT 檔
-- `-l`：語言代碼（建議加上 `.UTF-8` 確保編碼正確）
-- `-o`：輸出檔名
-
-#### iconv / msgconv — 編碼轉換
-
-```bash
-# iconv（通用編碼轉換）
-iconv -f big5 -t utf-8 input.po > output.po
-
-# msgconv（專用於 PO 檔）
-msgconv -t utf-8 input.po -o output.po
-```
-
-現代專案已全面使用 UTF-8，通常不需要此步驟。
-
-### 格式字串與變數位置交換
-
-GNOME `c-format` 專案中，交換變數位置需標明原文順序：
-
-```po
-msgid "%d articles match rule %d"
-msgstr "符合規則 %2$d 的文章有 %1$d 個"
-```
-
-KDE `qt-format` 則直接交換：
-
-```po
-msgid "%1 articles match rule %2"
-msgstr "符合規則 %2 的文章有 %1 個"
-```
-
-詳見 [`l10n-tw-guide.md`](l10n-tw-guide.md#34-變數位置交換) 的完整說明。
+手動使用 gettext 工具組（msgfmt／msgmerge／msginit／iconv）的常見情境、命令與格式字串變數交換範例，見 [`references/gettext-tools.md`](references/gettext-tools.md)。
 
 ---
 
@@ -386,7 +290,7 @@ msgstr "符合規則 %2 的文章有 %1 個"
 3. **既有翻譯去留** — 來源為正體中文 PO 且部分已有翻譯時，確認保留或重新翻譯
   - 保留：使用本文件「情境 B」對應流程
   - 重新翻譯：使用「情境 A」或「情境 C」流程
-4. **提交方式** — 確認完成後如何交付：手動上傳（如 Weblate 網頁上傳 PO）、git commit + PR（慣例見 `github.md`）、或其他管道
+4. **提交方式** — 確認完成後如何交付：手動上傳（如 Weblate 網頁上傳 PO）、git commit + PR（慣例見 `references/github.md`）、或其他管道
 5. **分批切割**（大專案適用） — 列出預計批次範圍
 6. **翻譯者身份（Last-Translator）** — 產出 PO 前確認翻譯者身份，來源依序為：
   - `--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `skills/l10n-tw/.env` 設定檔
@@ -400,7 +304,7 @@ msgstr "符合規則 %2 的文章有 %1 個"
 
 1. **Reconnaissance** — 確認 i18n 框架（gettext / GResource XML / Blueprint）、locale 命名慣例（看既有 .po 檔名或 LINGUAS）、POT msgid 數量
   - **完成標準：** i18n 框架已確認、locale 命名已確認、POT msgid 數量已記錄
-2. **Fork** — 透過 `gh repo fork <upstream> --remote-name fork`，再重構 remote（origin=fork, upstream=upstream）。遠端命名慣例見 `github.md`
+2. **Fork** — 透過 `gh repo fork <upstream> --remote-name fork`，再重構 remote（origin=fork, upstream=upstream）。遠端命名慣例見 `references/github.md`
   - **完成標準：** `git remote -v` 顯示正確的 origin 與 upstream
 3. **取得 POT** — 從上游取得最新的 POT；若上游沒有 POT，只有既有 PO 檔，則用 `po_to_pot.py` 萃取
   - **完成標準：** 專案工作目錄中存在 `<project>.pot`
@@ -409,7 +313,7 @@ msgstr "符合規則 %2 的文章有 %1 個"
    uv run python3 skills/l10n-tw/scripts/po_preflight.py <path/to/source.pot_or_po>
   ```
 
-   `po_preflight.py` 會檢查：編碼與 BOM、檔頭條目、必填檔頭欄位（`Content-Type`、`Plural-Forms` 等）、`msgfmt --statistics -cv` 格式合法性、檔頭／條目級 `#, fuzzy` 旗標、重複 `(msgctxt, msgid)`、過時 `#~` 條目、行尾。檔頭格式基準見 [`l10n-tw-guide.md`](l10n-tw-guide.md)「四、PO 檔頭格式規範」。
+   `po_preflight.py` 會檢查：編碼與 BOM、檔頭條目、必填檔頭欄位（`Content-Type`、`Plural-Forms` 等）、`msgfmt --statistics -cv` 格式合法性、檔頭／條目級 `#, fuzzy` 旗標、重複 `(msgctxt, msgid)`、過時 `#~` 條目、行尾。檔頭格式基準見 [`references/l10n-tw-guide.md`](references/l10n-tw-guide.md)「四、PO 檔頭格式規範」。
   - **異常處置（軟停止）** — 腳本退出碼 1 時，把回報的異常清單展示給使用者，由使用者決定先修正來源檔或以現況繼續；不強制中止流程
   - **完成標準：** `po_preflight.py` 退出碼 0；若退出碼 1，所有異常已展示給使用者並取得處置決定
 5. **建立專案目錄** — 將 `<project>.pot` 放入專案目錄，建立 `translations.py`。預設所有非暫存產出檔案（`translations.py`、生成的 PO）與 POT 位於同一層
@@ -420,8 +324,8 @@ msgstr "符合規則 %2 的文章有 %1 個"
 ### Phase 2 — 翻譯
 
 6. **依情境選擇流程** — 對照「快速決策表」選擇 A、B、C 情境，並依規模選擇小／大專案流程。
-  - 翻譯品質要求：用語一致性參考 `terminology.md`、格式規範與風格指引參考 `l10n-tw-guide.md`、禁止直接從 zh_CN 轉換。
-  - **完成標準：** 所有 msgid 皆有翻譯，無直接從 zh_CN 轉換的內容，符合 `l10n-tw-guide.md` 規範
+  - 翻譯品質要求：用語一致性參考 `references/terminology.md`、格式規範與風格指引參考 `references/l10n-tw-guide.md`、禁止直接從 zh_CN 轉換。
+  - **完成標準：** 所有 msgid 皆有翻譯，無直接從 zh_CN 轉換的內容，符合 `references/l10n-tw-guide.md` 規範
 
 ### Phase 3 — 生成與驗證
 
@@ -435,7 +339,7 @@ msgstr "符合規則 %2 的文章有 %1 個"
 
 - **方式一：commit/PR** — 適用 git repo
   1. **[GATE] Show PO to user** — 展示產出的 PO 成品要先審核，**確認後才能繼續下一步**
-  2. **Branch** — 命名 `zh-tw-translation`；monorepo 用 `<project>-zh-tw` 避免混淆。慣例見 `github.md`
+  2. **Branch** — 命名 `zh-tw-translation`；monorepo 用 `<project>-zh-tw` 避免混淆。慣例見 `references/github.md`
     - **完成標準：** branch 已建立，名稱符合慣例
   3. **[GATE] Show diff + commit message** — `git diff --cached` 展示變更，同時展示 commit message（`git commit -m "..."`），等確認後才能 commit
   4. **[GATE] Show PR draft** — 展示 PR title + body 草稿，等確認後才能 push 與 `gh pr create`
@@ -446,15 +350,15 @@ msgstr "符合規則 %2 的文章有 %1 個"
 
 ## GitHub Operations
 
-遠端設定、分支命名、commit/PR 格式等詳細操作請見 [`github.md`](github.md)。
+遠端設定、分支命名、commit/PR 格式等詳細操作請見 [`references/github.md`](references/github.md)。
 
 ## 重要慣例
 
 - **LINGUAS 檔案**：插入字母順序（zh_TW 在 zh_CN 後面）。注意 line ending：GNOME 專案可能用 CRLF
-- **用語一致性**：參考 `terminology.md`。credential=憑證、folder=資料夾、open=開啟、configure=設定
-- **語言環境命名**：跟著上游走，不幫上游決定標準。請見 [`locale.md`](locale.md) 了解 zh_TW 與 zh_Hant 的選擇原則
+- **用語一致性**：參考 `references/terminology.md`。credential=憑證、folder=資料夾、open=開啟、configure=設定
+- **語言環境命名**：跟著上游走，不幫上游決定標準。請見 [`references/locale.md`](references/locale.md) 了解 zh_TW 與 zh_Hant 的選擇原則
 - **不要直接從 zh_CN 轉換**：簡→繁會帶入中國用語（軟件/文件/信息），逐條從 POT 翻
-- **翻譯品質守則**：翻譯前詳閱 [`l10n-tw-guide.md`](l10n-tw-guide.md)，特別是基本守則（禁止機器/AI 直接提交、禁止簡轉繁、用語前後一致等）
+- **翻譯品質守則**：翻譯前詳閱 [`references/l10n-tw-guide.md`](references/l10n-tw-guide.md)，特別是基本守則（禁止機器/AI 直接提交、禁止簡轉繁、用語前後一致等）
 - **產出檔案目錄**：專案目錄動態，以要翻譯的 PO/POT 所在目錄為主；產出檔案（`translations.py`、生成的 PO）與來源 POT 位於同一層目錄
 - **驗證暫存檔清理**：若任務中沒有要輸出 `.mo` 檔，純為驗證用途而產生的 `messages.mo`（`msgfmt` 預設輸出）應於作業後清理
 
@@ -469,7 +373,7 @@ msgstr "符合規則 %2 的文章有 %1 個"
 5. **execute_code 不載入 env** — 需要 gh CLI / git 操作時要用 terminal 工具
 6. **跳脫字元** — `\n`、`\"`、`\\` 在 PO 裡有特殊意義
 7. **翻譯用語一致性** — 同一專案內不要同一個英文詞用不同中文翻法
-8. **Locale 命名混亂** — `zh_TW`（GNU gettext 傳統） vs `zh_Hant`（BCP 47 現代標準），依上游決定。詳見 `locale.md`
+8. **Locale 命名混亂** — `zh_TW`（GNU gettext 傳統） vs `zh_Hant`（BCP 47 現代標準），依上游決定。詳見 `references/locale.md`
 9. **舊 PO 譯文可能與新 POT 對不上** — 上游更新後 msgid 可能變動；轉成 `translations.py` 後用 `po_gen.py` 的 missing 報告補洞
 10. **批次流程一定要合併回 `translations.py`** — 若停留在 `apply_translations.py` 產出的 PO，`regression_test.py` 不會涵蓋
 

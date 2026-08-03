@@ -8,7 +8,7 @@
 
 - **完整 SOP** — `SKILL.md` 內建翻譯流程：情境決策表（來源格式 × 規模 × 既有翻譯去留）、前置預檢、批次翻譯、驗證閘門、交付流程
 - **品質保證** — `po_verify.py` + `msgfmt` 雙重驗證，100% 覆蓋率、無 fuzzy 標記、格式字串正確
-- **翻譯規範** — 附 `l10n-tw-guide.md`（翻譯守則與格式規範）、`terminology.md`（用語對照）、`locale.md`（語言環境命名策略）
+- **翻譯規範** — 附 `references/l10n-tw-guide.md`（翻譯守則與格式規範）、`references/terminology.md`（用語對照）、`references/locale.md`（語言環境命名策略）
 - **工具鏈齊全** — 預檢、POT 萃取、翻譯生成、批次合併、用語正規化、回歸測試一應俱全
 - **跨平台** — 標準 `SKILL.md` 格式，可安裝於大部分支援 Agent Skills 的 AI Agent 平台
 - **規則明確** — 翻譯前必須與使用者確認翻譯計畫，交付前展示產出與 PR 草稿（Gate 流程）
@@ -23,7 +23,7 @@
 | [自由軟體正體中文化工作流程規範](https://hackmd.io/@l10n-tw/translation_guidelines) | 基本守則、譯文格式規範（標點／空格排版／快捷鍵字元／變數位置／日期時間）、PO 檔頭格式、模糊與已淘汰譯文處理 |
 | [自由軟體正體中文化翻譯風格指引](https://hackmd.io/@l10n-tw/translation_style_guide) | 術語訂立方法（理解→貼近→發想）、直譯／意譯／改寫等翻譯風格、情境限定對等直譯原則 |
 
-上述規範已整理為技能內的 `l10n-tw-guide.md`（詳見 `l10n-tw-guide.md` 開頭的參考文件清單）。
+上述規範已整理為技能內的 `references/l10n-tw-guide.md`（詳見該檔開頭的參考文件清單）。
 
 ## 目錄結構
 
@@ -32,10 +32,12 @@ l10n-tw/                       # 技能目錄（安裝時複製或連結此目�
 ├── README.md                  # 技能說明（本文件）
 ├── AGENTS.md                  # 技能開發規則與指令
 ├── SKILL.md                   # 技能入口：SOP 流程說明
-├── l10n-tw-guide.md           # 翻譯規範與指引（必讀）
-├── terminology.md             # 用語對照表
-├── locale.md                  # 語言環境命名策略
-├── github.md                  # GitHub 操作參考
+├── references/
+│   ├── l10n-tw-guide.md       # 翻譯規範與指引（必讀）
+│   ├── terminology.md         # 用語對照表
+│   ├── locale.md              # 語言環境命名策略
+│   ├── github.md              # GitHub 操作參考
+│   └── gettext-tools.md       # gettext 工具組參考
 └── scripts/                   # 10 支 Python 工具腳本
 ```
 

@@ -131,9 +131,9 @@ Examples:
             continue
 
         if isinstance(msgstr, list):
-            is_empty = all(not s.strip() for s in msgstr)
+            is_empty = all(not s for s in msgstr)
         else:
-            is_empty = not msgstr.strip()
+            is_empty = not msgstr
 
         if is_empty and not args.all:
             skipped += 1

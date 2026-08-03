@@ -7,7 +7,7 @@ then replaces them with the documented TW equivalents inside translations.py val
 
 Usage:
     uv run python3 skills/l10n-tw/scripts/fix_terminology.py \
-        <translations.py> [--terms terminology.md]
+        <translations.py> [--terms references/terminology.md]
 """
 
 import argparse
@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 
-DEFAULT_TERMS_PATH = Path(__file__).resolve().parents[1] / "terminology.md"
+DEFAULT_TERMS_PATH = Path(__file__).resolve().parents[1] / "references" / "terminology.md"
 
 
 def load_replacements(terms_path: Path) -> list[tuple[str, str]]:
