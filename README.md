@@ -1,4 +1,4 @@
-# l10n-tw-skill
+# agent-skills
 
 適用大部分 AI Agent 平台的正體中文（zh-TW）在地化 **Agent Skill**。
 
@@ -28,7 +28,7 @@
 ## 目錄結構
 
 ```
-l10n-tw-skill/
+agent-skills/
 ├── README.md
 ├── AGENTS.md                  # OpenCode 代理規則與指令
 ├── skills/l10n-tw/            # 本技能（安裝時複製或連結此目錄）

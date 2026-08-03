@@ -1,4 +1,4 @@
-# AGENTS.md — l10n-tw-skill
+# AGENTS.md — agent-skills
 
 繁體中文在地化專案的 OpenCode 技能儲存庫。
 
