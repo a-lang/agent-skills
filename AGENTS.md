@@ -1,69 +1,22 @@
 # AGENTS.md — agent-skills
 
-繁體中文在地化專案的 OpenCode 技能儲存庫。
+**Agent Skills 儲存庫**，每個技能自含說明與工具。
 
-## 這是什麼
+## 結構
 
-這是一個**技能儲存庫**，不是應用程式。入口點是 `skills/l10n-tw/SKILL.md`，其中包含 SOP。助手腳本在 `skills/l10n-tw/scripts/` 中。
-
-## 指令
-
-所有指令都在 `skills/l10n-tw/scripts/` 中，並從**儲存庫根目錄**執行。
-詳細情境流程（來源格式、既有翻譯去留、大／小專案）請見 `skills/l10n-tw/SKILL.md`。
-
-```bash
-# 來源檔預檢：翻譯前先驗證 POT／PO 格式（編碼/檔頭/fuzzy/重複/msgfmt）
-uv run python3 skills/l10n-tw/scripts/po_preflight.py <path/to/source.pot_or_po>
-
-# 生成 PO：POT + translations.py → PO
-uv run python3 skills/l10n-tw/scripts/po_gen.py <path/to/template.pot> -t <path/to/translations.py> -o <path/to/output-zh_TW.po>
-
-# 驗證：檢查是否 100% 覆蓋、無模糊標記、註解保留
-uv run python3 skills/l10n-tw/scripts/po_verify.py <path/to/template.pot> <path/to/output.po> --comments
-
-# 回歸測試：重新生成所有專案並比對已提交的 PO（在修改腳本後執行）
-uv run python3 skills/l10n-tw/scripts/regression_test.py
-
-# 從既有繁體中文 PO 抽出 translations.py
-uv run python3 skills/l10n-tw/scripts/po_to_translations.py <path/to/old-zh_TW.po> -o <path/to/translations.py>
-
-# 合併多個批次 JSON 為 translations.py
-uv run python3 skills/l10n-tw/scripts/merge_batches.py <batch1.json> <batch2.json> ... -o <path/to/translations.py>
-
-# 依 terminology.md 統一用語
-uv run python3 skills/l10n-tw/scripts/fix_terminology.py <path/to/translations.py>
+```
+skills/<skill-name>/
+├── SKILL.md       # 技能入口（SOP 與情境流程，必讀）
+├── AGENTS.md      # 該技能的開發規則與指令（若有）
+├── scripts/       # 工具腳本（從技能目錄執行）
+└── *.md           # 技能文件
 ```
 
-- `po_verify.py`：退出碼 0 = 沒問題，1 = 有問題
-- `po_preflight.py`：退出碼 0 = 來源檔乾淨，1 = 發現問題（軟停止，回報使用者決定修正或繼續）
-- `po_gen.py` 接受 `.py`（匯出 `TRANSLATIONS` dict）或 `.json`（透過 `-j`）作為翻譯來源
-- 腳本使用 `python3`，無需手動啟用 venv —— `uv run` 自動處理
-- 回歸測試自動探索 (POT, translations 檔) 專案對：優先 `<potstem>-translations.py`，未配對的 POT 回退到預設 `translations.py`
+每個技能目錄自含 SKILL.md，可直接複製或符號連結安裝到支援 Agent Skills 的平台。
 
-## 專案目錄慣例
+## 技能開發指引
 
-專案目錄是動態的，以要翻譯的 PO 或 POT 檔所在目錄為主，不綁定 `skills/l10n-tw/` 下的固定位置。所有非暫存產出檔案（`translations.py`、生成的 PO）須與來源 POT 或 PO 位於同一層目錄。若專案另有指定工作目錄，以指定目錄為優先。
-
-## 閘門（審查點）——依 SKILL.md
-
-所有四項操作在執行前都需要使用者確認：
-1. 翻譯計畫（來源格式／條數／情境流程／既有翻譯去留／提交方式／翻譯者身份）
-2. 生成的 PO 檔案輸出
-3. git diff + commit message
-4. PR title + body 草稿
-
-## 語言環境命名
-
-遵循上游規則——請勿猜測。檢查現有的 PO 檔案名稱或 `LINGUAS`。詳見 `skills/l10n-tw/locale.md`。
-
-## Python 虛擬環境
-
-使用 `uv` 管理。從儲存庫根目錄執行：
-
-```bash
-uv venv              # 建立 .venv（首次）
-uv pip install polib # 安裝回歸測試所需套件
-uv run python3 ...   # 在 venv 內執行，無需手動 activate
-```
-
-`polib` 是回歸測試 (`regression_test.py`) 所需的唯一非標準函式庫套件。
+- **新增技能**：建立 `skills/<skill-name>/`，以 `SKILL.md` 為入口
+- **本地掛載測試**：`ln -s ../../skills/<skill-name> .opencode/skills/<skill-name>`
+- **Python 腳本**：一律 `uv run python3 ...`，虛擬環境共用根目錄 `.venv`
+- **各技能細節**：見各技能目錄內的 `SKILL.md` 與 `AGENTS.md`，頂層不重述
