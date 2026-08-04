@@ -43,7 +43,26 @@ l10n-tw/                       # 技能目錄（安裝時複製或連結此目�
 
 ## 安裝
 
-安裝 = 把本技能目錄（儲存庫的 `skills/l10n-tw/`，即本文件所在目錄）放進你所用平台的 skills 目錄。以下指令從**儲存庫根目錄**執行。可用**複製**或**符號連結**；符號連結可讓多個平台共享同一份技能，更新僅需一處。
+安裝 = 把本技能目錄（儲存庫 `skills/l10n-tw/`，即本文件所在目錄）放入你所用平台的 skills 目錄。方式有**複製**與**符號連結**兩種：
+
+- **複製** — 安裝後與儲存庫完全獨立，不受後續更新影響
+- **符號連結** — 多平台共享同一份技能，更新僅需 `git pull` 儲存庫一處
+
+### 1. 前置需求
+
+- `uv`（Python 套件管理，`uv pip install polib` 供回歸測試使用）
+- `gettext`（提供 `msgfmt` 做 PO 格式驗證）
+
+### 2. 取得技能
+
+先取得儲存庫（已 clone 者可略過；以下指令皆從**儲存庫根目錄**執行）：
+
+```bash
+git clone https://github.com/a-lang/agent-skills
+cd agent-skills
+```
+
+### 3. 安裝（複製或符號連結）
 
 ```bash
 # 複製（例如安裝到 OpenCode 個人目錄）
@@ -67,22 +86,34 @@ ln -s "$PWD/skills/l10n-tw" .claude/skills/l10n-tw
 
 > Cursor、Copilot 與 Codex 亦相容 `.claude/skills/` 位置；`~/.agents/skills/` 是跨平台共通的「新興標準」位置，多數平台皆會掃描。
 
+### 4. 指令安裝（替代方案）
+
 **Gemini CLI** 也支援指令安裝：
 
 ```bash
 gemini skills link /path/to/skills/l10n-tw --scope user
 ```
 
-**跨平台工具**（skills.sh 生態系，安裝至多個平台並自動建立符號連結）：
+**跨平台工具**（skills.sh 生態系，自動偵測已安裝的 agent、以符號連結安裝；可用 `--skill l10n-tw` 只裝本技能、`-a <agent>` 指定平台、`-y` 跳過互動確認）：
 
 ```bash
-npx skills add <此儲存庫 URL>
+# 專案模式（預設）：安裝至目前專案（如 .claude/skills/），可隨專案提交與團隊共享
+npx skills add https://github.com/a-lang/agent-skills --skill l10n-tw
+
+# 全域模式（-g）：安裝至使用者目錄（如 ~/.claude/skills/），跨專案可用
+npx skills add https://github.com/a-lang/agent-skills --skill l10n-tw -g
 ```
 
-### 環境需求
+### 5. 安裝後驗證
 
-- `uv`（Python 套件管理，`uv pip install polib` 供回歸測試使用）
-- `gettext`（提供 `msgfmt` 做 PO 格式驗證）
+在技能目錄執行，確認環境完備：
+
+```bash
+uv run python3 scripts/po_verify.py --help   # 確認 uv 與腳本可執行
+msgfmt --version                             # 確認 gettext 可用
+```
+
+> **注意**：技能目錄內的 `.env`（翻譯者身份設定）已被 `.gitignore` 排除，clone 不會帶入；需要永久保留翻譯者身份時請自行建立（見「翻譯者身份」章節）。
 
 ## 使用方式
 
