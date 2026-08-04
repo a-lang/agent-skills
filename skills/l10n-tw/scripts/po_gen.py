@@ -328,7 +328,7 @@ def generate_po(pot_path: str, translations: dict[str, str],
 
             # Format msgid (preserve multi-line from source)
             msgid_lines = []
-            decoded_msgid = decode_po(msgid)  # We already have decoded
+            decoded_msgid = msgid  # get_msgid already decoded
             # Re-encode for output
             raw_msgid = encode_po(decoded_msgid)
             if is_multiline_po(decoded_msgid) or '\n' in decoded_msgid:
