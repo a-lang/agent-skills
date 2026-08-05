@@ -4,3 +4,4 @@ project/
 __pycache__
 opencode.json
 skills/l10n-tw/.env
+l10n-tw-security-audit-report.md

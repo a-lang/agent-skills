@@ -4,7 +4,15 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "1.1"
+  version: "1.2"
+  hermes:
+    tags:
+      - l10n
+      - translation
+      - gettext
+      - po
+      - zh-tw
+      - localization
 ---
 # PO Translation — Chinese Localization Project
 
@@ -218,7 +226,7 @@ uv run python3 skills/l10n-tw/scripts/po_gen.py \
 uv run python3 skills/l10n-tw/scripts/po_verify.py \
   <path/to/template.pot> <path/to/output.po> --comments
 
-msgfmt --statistics -cv <path/to/output.po> -o /dev/null
+msgfmt -cv <path/to/output.po> -o /dev/null
 ```
 
 確認：
@@ -235,8 +243,11 @@ msgfmt --statistics -cv <path/to/output.po> -o /dev/null
 ### 4. 回歸測試（修改腳本後必跑）
 
 ```bash
-uv run python3 skills/l10n-tw/scripts/regression_test.py
+uv run python3 skills/l10n-tw/scripts/regression_test.py --root <projects-dir>
 ```
+
+`--root` 為必填，指向含 (POT, translations.py) 專案對的目錄（不會隱式掃描 cwd）；
+執行前會列出將載入的 translations.py 並要求確認，非互動環境請加 `--yes`。
 
 **完成標準**：所有專案顯示 `[OK]`。
 
@@ -313,7 +324,7 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
    uv run python3 skills/l10n-tw/scripts/po_preflight.py <path/to/source.pot_or_po>
   ```
 
-   `po_preflight.py` 會檢查：編碼與 BOM、檔頭條目、必填檔頭欄位（`Content-Type`、`Plural-Forms` 等）、`msgfmt --statistics -cv` 格式合法性、檔頭／條目級 `#, fuzzy` 旗標、重複 `(msgctxt, msgid)`、過時 `#~` 條目、行尾。檔頭格式基準見 [`references/l10n-tw-guide.md`](references/l10n-tw-guide.md)「四、PO 檔頭格式規範」。
+   `po_preflight.py` 會檢查：編碼與 BOM、檔頭條目、必填檔頭欄位（`Content-Type`、`Plural-Forms` 等）、`msgfmt -cv` 格式合法性、檔頭／條目級 `#, fuzzy` 旗標、重複 `(msgctxt, msgid)`、過時 `#~` 條目、行尾。檔頭格式基準見 [`references/l10n-tw-guide.md`](references/l10n-tw-guide.md)「四、PO 檔頭格式規範」。
   - **異常處置（軟停止）** — 腳本退出碼 1 時，把回報的異常清單展示給使用者，由使用者決定先修正來源檔或以現況繼續；不強制中止流程
   - **完成標準：** `po_preflight.py` 退出碼 0；若退出碼 1，所有異常已展示給使用者並取得處置決定
 5. **建立專案目錄** — 將 `<project>.pot` 放入專案目錄，建立 `translations.py`。預設所有非暫存產出檔案（`translations.py`、生成的 PO）與 POT 位於同一層

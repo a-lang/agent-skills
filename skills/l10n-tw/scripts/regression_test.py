@@ -100,8 +100,13 @@ def main():
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path.cwd(),
-        help="Root directory to scan for projects (default: current working directory)",
+        required=True,
+        help="Root directory to scan for projects (required — never scans cwd implicitly)",
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Skip the confirmation prompt before loading translations.py files",
     )
     parser.add_argument(
         "--language",
@@ -118,6 +123,16 @@ def main():
     if not projects:
         print(f"⚠️  No projects found under {root}")
         return 0
+
+    print(f"Will load {len(projects)} translations.py file(s):")
+    for _, pot_file, tr_py in projects:
+        print(f"  - {tr_py}")
+    if not args.yes:
+        try:
+            input("Press Enter to continue, Ctrl-C to abort… ")
+        except (EOFError, KeyboardInterrupt):
+            print("Aborted.")
+            return 1
 
     results = []
     for project_dir, pot_file, tr_py in projects:

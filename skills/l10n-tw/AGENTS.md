@@ -21,8 +21,8 @@ uv run python3 scripts/po_gen.py <path/to/template.pot> -t <path/to/translations
 # 驗證：檢查是否 100% 覆蓋、無模糊標記、註解保留
 uv run python3 scripts/po_verify.py <path/to/template.pot> <path/to/output.po> --comments
 
-# 回歸測試：重新生成所有專案並比對已提交的 PO（在修改腳本後執行）
-uv run python3 scripts/regression_test.py
+# 回歸測試：重新生成所有專案並比對已提交的 PO（在修改腳本後執行；--root 必填，執行前會要求確認，非互動環境加 --yes）
+uv run python3 scripts/regression_test.py --root <projects-dir>
 
 # 從既有繁體中文 PO 抽出 translations.py
 uv run python3 scripts/po_to_translations.py <path/to/old-zh_TW.po> -o <path/to/translations.py>

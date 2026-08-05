@@ -22,6 +22,7 @@ import re
 import os
 import sys
 import json
+import ast
 import argparse
 from datetime import datetime
 from pathlib import Path
@@ -403,20 +404,58 @@ def load_translations(source: str) -> dict[str, str]:
         with open(source, 'r', encoding='utf-8') as f:
             return json.load(f)
     elif source.endswith('.py'):
-        # Import the file as a module
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("translations_mod", source)
-        mod = importlib.util.module_from_spec(spec)
-        # Don't add to sys.modules to avoid conflicts
-        spec.loader.exec_module(mod)
-        if hasattr(mod, 'TRANSLATIONS'):
-            return mod.TRANSLATIONS
-        # Also check for upper-case T dict
-        if hasattr(mod, 'T'):
-            return mod.T
-        raise ValueError(f"TRANSLATIONS dict not found in {source}")
+        return load_translations_py(source)
     else:
         raise ValueError(f"Unsupported translations file: {source} (use .py or .json)")
+
+
+def load_translations_py(path: str) -> dict[str, str]:
+    """Load TRANSLATIONS from a translations.py WITHOUT executing it.
+
+    Parses the file as an AST and only accepts dict-literal assignments
+    (``TRANSLATIONS = {...}`` / ``T = {...}``, optionally annotated like
+    ``TRANSLATIONS: dict = {...}``). Values are evaluated with
+    ast.literal_eval, so arbitrary code is never executed.
+    """
+    tree = ast.parse(Path(path).read_text(encoding="utf-8"), filename=str(path))
+    # Pass 1: every top-level statement must be a docstring or an assignment
+    for node in tree.body:
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) \
+                and isinstance(node.value.value, str):
+            continue
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            raise ValueError(
+                f"refusing to load {path}: non-assignment statement "
+                f"({type(node).__name__}) — translations.py must be a pure dict literal")
+    # Pass 2: find the TRANSLATIONS / T dict literal
+    translations = None
+    for node in tree.body:
+        if isinstance(node, ast.AnnAssign):
+            target = node.target
+            value = node.value
+        elif isinstance(node, ast.Assign):
+            if len(node.targets) != 1:
+                raise ValueError(
+                    f"refusing to load {path}: unsupported multi-target assignment")
+            target = node.targets[0]
+            value = node.value
+        else:
+            continue  # docstring
+        if not (isinstance(target, ast.Name) and target.id in ("TRANSLATIONS", "T")):
+            continue
+        if value is None:
+            raise ValueError(f"{target.id} must be assigned a dict literal in {path}")
+        if not isinstance(value, ast.Dict):
+            raise ValueError(f"{target.id} must be a dict literal in {path}")
+        try:
+            translations = ast.literal_eval(value)
+        except ValueError as e:
+            raise ValueError(
+                f"{target.id} in {path} contains non-literal values ({e})") from None
+        break
+    if translations is None:
+        raise ValueError(f"TRANSLATIONS dict not found in {path}")
+    return translations
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────
