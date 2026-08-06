@@ -127,7 +127,7 @@ AI 會依 `SKILL.md` 的 SOP 進行：確認翻譯計畫 → 預檢來源檔 →
 
 ```bash
 uv run python3 scripts/po_preflight.py <source.pot_or_po>   # 來源檔預檢
-uv run python3 scripts/po_gen.py <t.pot> -t translations.py -o out-zh_TW.po
+uv run python3 scripts/po_gen.py <t.pot> -t <potstem>-translations.py -o out-zh_TW.po
 uv run python3 scripts/po_verify.py <t.pot> <out.po> --comments
 uv run python3 scripts/regression_test.py --root <projects-dir>   # 回歸測試（--root 必填）
 ```
