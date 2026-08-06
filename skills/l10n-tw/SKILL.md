@@ -4,7 +4,7 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "1.3"
+  version: "1.4"
   hermes:
     tags:
       - l10n
@@ -357,11 +357,14 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 5. **分批切割**（大專案適用） — 列出預計批次範圍
 6. **翻譯者身份（Last-Translator）** — 產出 PO 前確認翻譯者身份，來源依序為：
   - `--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `skills/l10n-tw/.env` 設定檔
-  - 三者皆無時**詢問使用者如何處置**：提供姓名與 email（可選擇寫入 `skills/l10n-tw/.env` 永久保留，該檔已被 `.gitignore` 排除），或本次以佔位符 `Translator Name <translator@example.org>` 進行（交付前須另行處理）
+  - 三者皆無時依以下三步驟處理：
+    1. 詢問使用者姓名與 email
+    2. **必須接著問**是否寫入 `skills/l10n-tw/.env` 永久保存，供以後翻譯任務自動套用
+    3. 同意 → 建立／寫入 `.env`（格式 `L10N_TW_TRANSLATOR="Name <email>"`）並回報已保存；拒絕 → 僅本次使用該身份，不寫入檔案
 
 **[GATE] 翻譯計畫確認** — 將上述摘要展示給使用者，明確等使用者確認後才開始 Phase 1。計畫未經確認，不得進行翻譯。
 
-- **完成標準：** 來源格式、條數、情境/流程、是否批次、既有翻譯去留、提交方式、翻譯者身份皆經使用者確認
+- **完成標準：** 來源格式、條數、情境/流程、是否批次、既有翻譯去留、提交方式、翻譯者身份（含是否保存至 `.env`）皆經使用者確認
 
 ### Phase 1 — 前置準備
 

@@ -136,7 +136,7 @@ uv run python3 scripts/regression_test.py --root <projects-dir>   # 回歸測試
 
 ### 翻譯者身份（Last-Translator）
 
-生成 PO 時，翻譯者身份依序從以下來源解析：CLI `--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `.env` 設定檔；皆無時使用佔位符並警告。永久保留請寫入 `.env`（已被 `.gitignore` 排除，不會被提交）：
+生成 PO 時，翻譯者身份依序從以下來源解析：CLI `--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `.env` 設定檔；皆無時，AI 會詢問翻譯者姓名與 email，並確認是否寫入 `.env` 永久保存，供以後的翻譯任務自動套用。永久保留也可自行寫入 `.env`（已被 `.gitignore` 排除，不會被提交）：
 
 ```bash
 echo 'L10N_TW_TRANSLATOR=Name <name@example.org>' >> .env

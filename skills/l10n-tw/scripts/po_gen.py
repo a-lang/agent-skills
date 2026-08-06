@@ -156,8 +156,16 @@ def has_fuzzy(entry: str) -> bool:
 
 
 def remove_fuzzy(entry: str) -> str:
-    """Remove '#, fuzzy' lines from entry."""
-    return re.sub(r'^#, fuzzy\s*\n?', '', entry, flags=re.MULTILINE)
+    """Remove '#, fuzzy' flag while preserving other flags.
+
+    Flags are a comma-separated list on the '#,' line (e.g. '#, fuzzy, c-format').
+    The fuzzy flag may appear anywhere in the list, not just at the start.
+    A line left with no flags after removal is deleted entirely.
+    """
+    def repl(m):
+        flags = [f.strip() for f in m.group(1).split(',') if f.strip() != 'fuzzy']
+        return '#, ' + ', '.join(flags) + '\n' if flags else ''
+    return re.sub(r'^#, ([^\n]*\bfuzzy\b[^\n]*)\n?', repl, entry, flags=re.MULTILINE)
 
 
 def get_comments(entry: str) -> list[str]:
