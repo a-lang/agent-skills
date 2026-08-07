@@ -4,7 +4,7 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "1.4"
+  version: "1.5"
   hermes:
     tags:
       - l10n
@@ -91,6 +91,33 @@ l10n-tw/
 
 **規模門檻**：建議 **2000 條 msgid** 以下使用單一 `<potstem>-translations.py`；超過則考慮批次流程。
 （實際上 2000 條以下仍可用單一檔案管理，視編輯便利性調整。）
+
+---
+
+## 環境準備（首次執行必做）
+
+所有工具腳本只依賴 Python 標準庫與 `polib`（回歸測試 `regression_test.py` 使用）。
+**開始任何翻譯任務前**，先確認 polib 可用：
+
+```bash
+uv run python3 -c "import polib"
+```
+
+- 正常輸出（無錯誤）→ 環境就緒，直接開始。
+- 報 `No module named 'polib'` → 依序執行：
+
+```bash
+uv venv                  # 建立 .venv（僅首次；已有則略過）
+uv pip install polib     # 安裝 polib（須在 venv 建立之後）
+uv run python3 -c "import polib"   # 確認成功後再繼續
+```
+
+> **為什麼要檢查**：`uv run` 在找不到 .venv 時會**靜默退回裸 Python（不報錯）**，
+> 所以「指令能跑」不代表環境就緒——polib 缺席時，回歸測試會以
+> `No module named 'polib'` 讓所有專案全數 FAIL。安裝順序不可顛倒：
+> `uv pip install` 在沒有 venv 時會直接報
+> `No virtual environment found`。若環境禁止建立 venv（PEP 668
+> externally-managed），回報使用者處理，不得擅自 `--system` 安裝。
 
 ---
 
@@ -275,6 +302,15 @@ msgfmt -cv <path/to/output.po> -o /dev/null
 
 ### 4. 回歸測試（修改腳本後必跑）
 
+**前置檢查**：先確認 polib 已安裝（缺少時所有專案會全數 FAIL）：
+
+```bash
+uv run python3 -c "import polib"
+```
+
+若報 `No module named 'polib'`，依「[環境準備](#環境準備首次執行必做)」章節的
+SOP（`uv venv` → `uv pip install polib`）建立環境後重試。確認無誤後再執行：
+
 ```bash
 uv run python3 skills/l10n-tw/scripts/regression_test.py --root <projects-dir>
 ```
@@ -453,4 +489,5 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 8. **Locale 命名混亂** — `zh_TW`（GNU gettext 傳統） vs `zh_Hant`（BCP 47 現代標準），依上游決定。詳見 `references/locale.md`
 9. **舊 PO 譯文可能與新 POT 對不上** — 上游更新後 msgid 可能變動；轉成 translations 檔後用 `po_gen.py` 的 missing 報告補洞
 10. **批次流程一定要合併回 translations 檔** — 若停留在 `apply_translations.py` 產出的 PO，`regression_test.py` 不會涵蓋
+11. **polib 未安裝** — 回歸測試報 `No module named 'polib'` 時，依「[環境準備](#環境準備首次執行必做)」執行 `uv venv` + `uv pip install polib`（順序不可顛倒）。`uv run` 在無 .venv 時會靜默退回裸 Python，不能以「指令能跑」判斷環境就緒
 
