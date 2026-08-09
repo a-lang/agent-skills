@@ -4,7 +4,7 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "1.5"
+  version: "1.6"
   hermes:
     tags:
       - l10n
@@ -56,6 +56,11 @@ l10n-tw/
 > **目錄約定**：專案目錄是**動態**的，以要翻譯的 PO 或 POT 檔所在目錄為主，不綁定
 > `skills/l10n-tw/` 下的固定位置。所有非暫存產出檔案（`<potstem>-translations.py`、生成的 PO）
 > 須與來源 POT 或 PO 位於同一層目錄。
+>
+> **來源僅 repo URL**（本地無 PO/POT）：clone 與翻譯工作目錄**分離**，避免污染 clone repo。
+> - clone／fork 至暫存工作區 `$TMPDIR/l10n-tw/<project>/`（本環境慣例 `/tmp/opencode/l10n-tw/`），或使用者指定目錄；**不得** clone 進技能目錄或目前所在專案 repo 內部
+> - 於 clone 外建立姊妹工作目錄 `<project>-work/`，將來源 POT／PO 複製至其中；`<potstem>-translations.py`、批次 JSON、生成的 PO 等全部產出留在工作目錄，不寫入 clone
+> - 交付時才把最終 PO（與 LINGUAS 修改）從工作目錄複製回 clone 對應位置，再進行 git 操作
 >
 > **翻譯檔命名**：一律使用 `<potstem>-translations.py` 配對 `<potstem>.pot`
 > （potstem = POT 檔名主體，如 `template.pot` → `template-translations.py`）。
@@ -384,7 +389,7 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 
 動手翻譯前，先與使用者**共同**制定翻譯計畫：把以下事項整理成一份計畫摘要，**展示給使用者確認後**，才進入 Phase 1。不要跳過此步驟直接開始翻譯。
 
-1. **來源格式與條數** — 確認來源是 POT 或 PO、來源語言、需翻譯的條數；≥ 2000 條時採用批次翻譯（每批 100–160 條）
+1. **來源格式與條數** — 確認來源是 POT 或 PO、來源語言、需翻譯的條數；≥ 2000 條時採用批次翻譯（每批 100–160 條）。來源僅 repo URL 時，先 clone 至暫存工作區勘察 `po/` 內容（POT 或 PO、來源語言、條數、既有 zh_TW），再回報
 2. **情境與流程選定** — 對照「快速決策表」點出將走的情境（A／B／C／D）與規模（小／大）
 3. **既有翻譯去留** — 來源為正體中文 PO 且部分已有翻譯時，確認保留或重新翻譯
   - 保留：使用本文件「情境 B」對應流程
@@ -406,9 +411,9 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 
 1. **Reconnaissance** — 確認 i18n 框架（gettext / GResource XML / Blueprint）、locale 命名慣例（看既有 .po 檔名或 LINGUAS）、POT msgid 數量
   - **完成標準：** i18n 框架已確認、locale 命名已確認、POT msgid 數量已記錄
-2. **Fork** — 透過 `gh repo fork <upstream> --remote-name fork`，再重構 remote（origin=fork, upstream=upstream）。遠端命名慣例見 `references/github.md`
+2. **Fork** — 透過 `gh repo fork <upstream> --remote-name fork`，再重構 remote（origin=fork, upstream=upstream）。遠端命名慣例見 `references/github.md`。來源僅 repo URL 時，先在暫存工作區建立 clone（如 `gh repo clone <upstream> $TMPDIR/l10n-tw/<project>`），再於 clone 內執行 fork 與 remote 重構
   - **完成標準：** `git remote -v` 顯示正確的 origin 與 upstream
-3. **取得 POT** — 從上游取得最新的 POT；若上游沒有 POT，只有既有 PO 檔，則用 `po_to_pot.py` 萃取
+3. **取得 POT** — 從上游取得最新的 POT；若上游沒有 POT，只有既有 PO 檔，則用 `po_to_pot.py` 萃取。來源僅 repo URL 時，將 clone 內的 POT／PO 複製至工作目錄 `<project>-work/`，以其為來源
   - **完成標準：** 專案工作目錄中存在 `<project>.pot`
 4. **來源檔格式驗證** — 建立 translations 檔之前，先確認來源 POT／PO 內容格式符合規範，否則後續 `po_gen.py`／`po_verify.py`／`po_to_pot.py`／`po_to_translations.py` 會失敗或靜默產出錯誤結果。
   ```bash
@@ -421,6 +426,7 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 5. **建立專案目錄** — 將 `<project>.pot` 放入專案目錄，建立 `<project>-translations.py`。預設所有非暫存產出檔案（`<potstem>-translations.py`、生成的 PO）與 POT 位於同一層
   - 專案目錄預設與來源檔案 `<project>.pot` 或 `<project>.po` 同一層
   - 如果另有指定工作目錄者，以指定目錄為優先。
+  - 來源僅 repo URL 時，專案目錄＝工作目錄 `<project>-work/`（clone 外）
   - **完成標準：** 專案目錄包含 `<project>.pot` 與 `<project>-translations.py`
 
 ### Phase 2 — 翻譯
@@ -452,10 +458,11 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 
 - **方式一：commit/PR** — 適用 git repo
   1. **[GATE] Show PO to user** — 展示產出的 PO 成品要先審核，**確認後才能繼續下一步**
-  2. **Branch** — 命名 `zh-tw-translation`；monorepo 用 `<project>-zh-tw` 避免混淆。慣例見 `references/github.md`
+  2. **回填 clone** — 來源僅 repo URL 時，將工作目錄產出的 PO（與 LINGUAS 修改）複製回 clone 對應位置，確認 `git status` 僅含交付物
+  3. **Branch** — 命名 `zh-tw-translation`；monorepo 用 `<project>-zh-tw` 避免混淆。慣例見 `references/github.md`
     - **完成標準：** branch 已建立，名稱符合慣例
-  3. **[GATE] Show diff + commit message** — `git diff --cached` 展示變更，同時展示 commit message（`git commit -m "..."`），等確認後才能 commit
-  4. **[GATE] Show PR draft** — 展示 PR title + body 草稿，等確認後才能 push 與 `gh pr create`
+  4. **[GATE] Show diff + commit message** — `git diff --cached` 展示變更，同時展示 commit message（`git commit -m "..."`），等確認後才能 commit
+  5. **[GATE] Show PR draft** — 展示 PR title + body 草稿，等確認後才能 push 與 `gh pr create`
 - **方式二：手動上傳** — 適用 Weblate 等其他翻譯平台
   - 只輸出 PO 檔，不做其他後續處理
 

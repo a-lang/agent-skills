@@ -45,6 +45,8 @@ uv run python3 scripts/fix_terminology.py <path/to/translations.py_or_po>
 
 專案目錄是動態的，以要翻譯的 PO 或 POT 檔所在目錄為主，不綁定技能目錄下的固定位置。所有非暫存產出檔案（`<potstem>-translations.py`、生成的 PO）須與來源 POT 或 PO 位於同一層目錄。若專案另有指定工作目錄，以指定目錄為優先。
 
+來源僅 repo URL（本地無 PO/POT）時，clone 與翻譯工作目錄分離：clone／fork 至暫存工作區 `$TMPDIR/l10n-tw/<project>/`（本環境慣例 `/tmp/opencode/l10n-tw/`），不得 clone 進技能目錄或目前所在專案 repo 內部；翻譯產出全部留在 clone 外的姊妹工作目錄 `<project>-work/`，交付時才回填 clone。
+
 ## 閘門（審查點）——依 SKILL.md
 
 - **品質自檢 GATE**：進入交付前，必須完成 SKILL.md「交付前品質自檢清單」五項（用語掃描／完整性／格式合法／佔位符／排版抽查）並**展示輸出證據**；工具不適用時不得跳過，改用替代方式（如 `po_to_pot.py` 萃取 POT 後仍跑 `po_verify.py`）
