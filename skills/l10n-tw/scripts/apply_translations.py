@@ -28,6 +28,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from po_gen import normalize_eof
+
 TRANSLATOR = "Translator Name <translator@example.org>"
 LANGUAGE = "zh_TW"
 X_GENERATOR = "Hermes Agent + apply_translations.py"
@@ -216,9 +218,7 @@ def main():
         sys.exit(0)
 
     with open(po_path, 'w', encoding='utf-8') as f:
-        f.write('\n\n'.join(entries))
-        if not text.endswith('\n\n'):
-            f.write('\n')
+        f.write(normalize_eof('\n\n'.join(entries)))
     print(f"✅ Applied {applied} translations to {po_path}")
     print(f"   Skipped {skipped} entries with empty translation in batch")
     if missing:

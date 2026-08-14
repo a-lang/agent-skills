@@ -94,6 +94,26 @@ def get_comment_lines(text: str) -> list[str]:
             if l.startswith('#') and not l.startswith('#~')]
 
 
+def check_eof_canonicality(data: bytes) -> list[str]:
+    """Check byte-level PO file format canonicality.
+
+    Returns a list of issues (empty = pass). data is the file's raw bytes.
+    Checks: exactly one trailing newline; no trailing whitespace on any line.
+    """
+    issues: list[str] = []
+
+    trailing = len(data) - len(data.rstrip(b'\n'))
+    if trailing != 1:
+        issues.append(f"EOF: 檔案應以恰好一個換行結尾（現有 {trailing} 個）")
+
+    lines = data.split(b'\n')
+    for i, line in enumerate(lines[:-1], start=1):
+        if line.rstrip(b' \t') != line:
+            issues.append(f"L{i}: 行尾有多餘空白")
+
+    return issues
+
+
 # ── Main verification ────────────────────────────────────────────────────
 
 def verify(pot_path: str, po_path: str, check_comments: bool = False) -> int:
@@ -104,6 +124,17 @@ def verify(pot_path: str, po_path: str, check_comments: bool = False) -> int:
         pot_text = f.read()
     with open(po_path, 'r', encoding='utf-8') as f:
         po_text = f.read()
+    with open(po_path, 'rb') as f:
+        po_raw = f.read()
+
+    # Byte-level file format canonicality (before entry-level parsing)
+    format_issues = check_eof_canonicality(po_raw)
+    if format_issues:
+        issues += 1
+        print("❌ PO file format issues:")
+        for fi in format_issues:
+            print(f"   - {fi}")
+        print()
 
     pot_entries = parse_entries(pot_text)
     po_entries = parse_entries(po_text)

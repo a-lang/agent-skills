@@ -81,6 +81,11 @@ def is_multiline_po(s: str) -> bool:
     return '\n' in s or len(s) > 70
 
 
+def normalize_eof(s: str) -> str:
+    """Ensure the string ends with exactly one newline."""
+    return s.rstrip('\n') + '\n'
+
+
 # ── POT/Parsing helpers ──────────────────────────────────────────────────
 
 def parse_po_entries(text: str) -> list[str]:
@@ -524,7 +529,7 @@ Examples:
     )
 
     with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(po_content)
+        f.write(normalize_eof(po_content))
 
     print(f"\n✅ Written to: {output_path}")
 

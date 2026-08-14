@@ -22,6 +22,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from po_verify import check_eof_canonicality
+
 # Directory containing this script
 SCRIPTS = Path(__file__).resolve().parent
 
@@ -84,6 +86,31 @@ def parse_po_translations(po_path: Path):
     return out
 
 
+def self_check_eof_checker() -> bool:
+    """Sanity-check check_eof_canonicality itself against known samples."""
+    cases = [
+        (b'x\n', []),
+        (b'msgid ""\nmsgstr ""\n', []),
+        (b'x\n\n', ['EOF']),
+        (b'x', ['EOF']),
+        (b'x \n', ['L1']),
+        (b'x\t\n', ['L1']),
+        (b'', ['EOF']),
+        (b'x\n\n\n', ['EOF']),
+    ]
+    ok = True
+    for data, expected in cases:
+        issues = check_eof_canonicality(data)
+        if expected:
+            got = any(any(p in i for p in expected) for i in issues)
+        else:
+            got = not issues
+        if not got:
+            ok = False
+            print(f"  ❌ self-check failed for {data!r}: {issues}")
+    return ok
+
+
 def run(cmd, **kw):
     print(f"$ {' '.join(str(c) for c in cmd)}")
     r = subprocess.run(cmd, capture_output=True, text=True, **kw)
@@ -114,6 +141,10 @@ def main():
         help="Language code for generated PO files (default: zh_TW)",
     )
     args = parser.parse_args()
+
+    if not self_check_eof_checker():
+        print("❌ check_eof_canonicality self-check failed — aborting regression run")
+        return 1
 
     root = args.root.resolve()
     out_dir = Path("/tmp/po-regress")
@@ -165,6 +196,14 @@ def main():
         )
         if r.returncode != 0:
             results.append((project_dir.name, "FAIL", "po_gen.py failed"))
+            continue
+
+        # Byte-level format check on the regenerated PO
+        gen_raw = gen_po.read_bytes()
+        format_issues = check_eof_canonicality(gen_raw)
+        if format_issues:
+            print(f"  ❌ regenerated PO format issues: {format_issues[0]}")
+            results.append((project_dir.name, "FAIL", "EOF/trailing-whitespace format issue"))
             continue
 
         # Verify structure

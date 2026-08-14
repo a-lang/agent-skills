@@ -29,6 +29,8 @@ import re
 import sys
 from pathlib import Path
 
+from po_gen import normalize_eof
+
 
 DEFAULT_TERMS_PATH = Path(__file__).resolve().parents[1] / "references" / "terminology.md"
 
@@ -257,9 +259,7 @@ def fix_po_file(path: Path, replacements: list[tuple[str, str]]) -> int:
 
     content = '\n\n'.join(entries)
     with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
-        if not content.endswith('\n'):
-            f.write('\n')
+        f.write(normalize_eof(content))
     return fixed
 
 

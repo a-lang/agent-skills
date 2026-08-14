@@ -4,7 +4,7 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "1.6"
+  version: "1.7"
   hermes:
     tags:
       - l10n
@@ -449,8 +449,9 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 - [ ] **格式合法**：`msgfmt -cv` 退出碼 0，無 c-format 錯誤
 - [ ] **佔位符抽查**：`%s`／`%d`／`%1` 等變數與 msgid 一一對應（數量一致，語序可調）
 - [ ] **排版抽查**：中英／中數間半形空格、全形標點、快捷鍵格式符合 `references/l10n-tw-guide.md` 3.1–3.3（抽查新翻譯，不限全部條目）
+- [ ] **EOF／格式檢查**：產出 PO 以恰好一個換行結尾、無尾端空白（證據：`po_verify.py`／`po_preflight.py` 的檢查輸出，違反時退出碼非零）
 
-**完成標準：** 五項全部勾選並附輸出證據。任一項因工具限制無法自動執行時，必須改以人工檢查並在證據中載明方式——**不得以「工具只吃 translations.py」或「無 POT」為由跳過**（無 POT 時用 `po_to_pot.py` 萃取；工具真的不可用才允許人工替代）。
+**完成標準：** 六項全部勾選並附輸出證據。任一項因工具限制無法自動執行時，必須改以人工檢查並在證據中載明方式——**不得以「工具只吃 translations.py」或「無 POT」為由跳過**（無 POT 時用 `po_to_pot.py` 萃取；工具真的不可用才允許人工替代）。
 
 ### Phase 4 — 交付（事先詢問）
 
@@ -497,4 +498,5 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 9. **舊 PO 譯文可能與新 POT 對不上** — 上游更新後 msgid 可能變動；轉成 translations 檔後用 `po_gen.py` 的 missing 報告補洞
 10. **批次流程一定要合併回 translations 檔** — 若停留在 `apply_translations.py` 產出的 PO，`regression_test.py` 不會涵蓋
 11. **polib 未安裝** — 回歸測試報 `No module named 'polib'` 時，依「[環境準備](#環境準備首次執行必做)」執行 `uv venv` + `uv pip install polib`（順序不可顛倒）。`uv run` 在無 .venv 時會靜默退回裸 Python，不能以「指令能跑」判斷環境就緒
+12. **`split('\n')` 幻影尾元素** — 以換行結尾的輸入經 `text.split('\n')` 會多出 `''` 尾元素，join 重建後檔尾變雙換行。任何以「讀入 → 逐行處理 → 重建」為模式的腳本，輸出前必須過 `po_gen.normalize_eof()`（恰好一個 `\n`）；此類缺陷 `msgfmt`／條目級檢查看不見，須靠 `po_verify.py`／`po_preflight.py` 的 EOF 檢查攔截
 

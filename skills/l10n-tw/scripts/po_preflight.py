@@ -30,6 +30,8 @@ import sys
 import shutil
 import argparse
 
+from po_verify import check_eof_canonicality
+
 
 # ── PO string helpers (mirroring po_verify.py / po_gen.py) ────────────────
 
@@ -158,6 +160,17 @@ def preflight(path: str, use_msgfmt: bool = True) -> int:
     print('Encoding & BOM')
     print(f'  UTF-8 decode: ✅ OK')
     print(f'  BOM:          {"⚠️  present" if bom else "✅ none"}')
+    print()
+
+    # 1b. EOF / trailing-whitespace canonicality
+    format_issues = check_eof_canonicality(body)
+    print('File format (EOF / trailing whitespace)')
+    if format_issues:
+        errors.extend(format_issues)
+        for fi in format_issues:
+            print(f'  ❌ {fi}')
+    else:
+        print('  ✅ Exactly one trailing newline, no trailing whitespace')
     print()
 
     # 2. Line endings
