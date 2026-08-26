@@ -4,7 +4,7 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "1.7"
+  version: "1.8"
   hermes:
     tags:
       - l10n
@@ -40,9 +40,10 @@ l10n-tw/
 │   ├── locale.md                   # 語言環境命名策略
 │   └── gettext-tools.md            # gettext 工具組參考
 ├── scripts/
-│   ├── po_gen.py                   # POT + <potstem>-translations.py → PO
-│   ├── po_verify.py                # POT ↔ PO 驗證比對
-│   ├── po_preflight.py             # 來源檔預檢（編碼/檔頭/fuzzy/重複）
+│   ├── po_gen.py                     # POT + <potstem>-translations.py → PO
+│   ├── po_verify.py                  # POT ↔ PO 驗證比對
+│   ├── po_align_check.py             # CLI 求助文字對齊檢查（顯示寬度）
+│   ├── po_preflight.py               # 來源檔預檢（編碼/檔頭/fuzzy/重複）
 │   ├── po_to_pot.py                # 任意 PO → POT（萃取模板）
 │   ├── po_to_translations.py       # PO → <potstem>-translations.py（保留舊譯文）
 │   ├── fix_terminology.py          # 依 references/terminology.md 修正 translations 檔（translations.py 或 .po）
@@ -230,6 +231,7 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 | 用語修正 | `fix_terminology.py <potstem>-translations.py` | `fix_terminology.py <output.po>`（PO 模式） |
 | 生成 PO | `po_gen.py`（translation 檔 → PO） | 不需生成，直接編輯 |
 | 驗證 PO | `po_verify.py <pot>.pot <output.po>` + `msgfmt -cv` | 同左；無 POT 時先 `po_to_pot.py` 萃取 |
+| 對齊檢查 | `po_align_check.py <pot>.pot <output.po>` | 同左 |
 | 回歸測試 | `regression_test.py --root` | 不涵蓋（已知限制，見情境 D） |
 | 佔位符／空格標點抽查 | 人工抽查（見品質自檢清單） | 同左 |
 
@@ -253,21 +255,32 @@ uv run python3 skills/l10n-tw/scripts/fix_terminology.py \
 預設會讀取技能內 `references/terminology.md`；若要指定其他術語表，用
 `--terms <path/to/terminology.md>`。
 
-術語表標記兩種語意，自動化程度不同：
+術語表標記三種語意，自動化程度不同：
 
 - `不翻「X」` — **禁用詞**（中國用語，如「默認」「用戶」），自動替換為 TW 欄位譯法
 - `留意「X」` — **僅掃描不替換**（語境敏感詞，如「文件」在 document 語境是合法譯法），
   出現於「👀 Scan-only terms」報告，由譯者**人工判定**後決定是否修正
+- `對應「anchor」` + 上述標記 — **英文錨定**（msgid 命中 anchor 詞才作用），解決
+  msgstr 用詞正確與否取決於英文 msgid 語境的術語，如：
+  - `對應「line」「lines」留意「行」` — msgid 含 line/lines 且 msgstr 用「行」時，
+    出現於「👀 錨定掃描命中」報告（附 msgid＋msgstr 摘錄），逐條人工判定：
+    line 語境（第 %d 列、每列）改為「列」，合法複詞（換行、執行、行為）保留
+  - `對應「keyring」「key ring」不翻「金鑰環」` — msgid 含 keyring/key ring 時
+    自動改為「鑰匙圈」
 
 > 特別注意：自動替換只處理「不翻」禁用詞，**不處理**「留意」詞——因為
 > 字串層級無法區分語境（如「項目」= item 合法 vs project 禁用）。誤改
 > 會破壞既有譯文，寧可保留在掃描報告中人工處理。
 >
 > 特別是從既有 PO 起步時，簡轉繁會帶入中國用語，必須跑過一次。
+> 錨定詞比對為**詞界、大小寫不敏感**：`recvline`、`headline` 不會誤觸發
+> `line`，但 `command-line`、`1.5 lines`、`Line spacing` 會（後兩者
+> 語境由人工判定）。
 
 **完成標準**：輸出**沒有**「⚠️ Remaining banned terms」（自動替換已全清）；
 「👀 Scan-only terms」殘留時，逐項人工檢視，認定合法（如 document 語境的「文件」）
-或修正後視為完成。
+或修正後視為完成；「👀 錨定掃描命中」逐條依 msgid 語境判定，line 語境的「行」修正為
+「列」，合法複詞（換行／執行／行為等）保留並於證據中載明。
 
 ### 2. 生成 PO
 
@@ -305,7 +318,27 @@ msgfmt -cv <path/to/output.po> -o /dev/null
 
 **完成標準**：`po_verify.py` 與 `msgfmt` 皆退出碼 0。
 
-### 4. 回歸測試（修改腳本後必跑）
+### 4. 對齊檢查（CLI 求助文字）
+
+Translation Project 等指令型套件的 `--help` 輸出會把每個選項補空格到固定**顯示欄位**，
+讓說明文字對齊同一欄。CJK 字元是雙欄寬，翻譯後選項寬度改變，補空格數必須依顯示寬度
+重算，否則說明欄會位移。
+
+```bash
+uv run python3 skills/l10n-tw/scripts/po_align_check.py \
+  <path/to/template.pot> <path/to/output.po>
+```
+
+- 選項行（前導空白 ≥2 且有 2+ 空格分隔）：譯文說明欄位必須等於原文欄位
+- 續行（前導空白 ≥10 的純縮排）：譯文縮排欄位必須等於原文
+- 含 `\t` 的行跳過（Tab 對齊由 Tab 本身保證）；譯文換行結構與原文不同時跳過該行
+- 譯文選項顯示寬度超過原文說明欄 → 報「無法對齊（需人工決定）」
+- 無 CLI 求助對齊行的專案 → 印「無 CLI 求助對齊行」即通過（**不是**跳過檢查的理由）
+
+**完成標準**：退出碼 0。退出碼 1 時依報告逐條調整補空格數（見
+`references/l10n-tw-guide.md` 3.11），重新生成後再驗證直至 0。
+
+### 5. 回歸測試（修改腳本後必跑）
 
 **前置檢查**：先確認 polib 已安裝（缺少時所有專案會全數 FAIL）：
 
@@ -334,6 +367,7 @@ uv run python3 skills/l10n-tw/scripts/regression_test.py --root <projects-dir>
 | ----------------------- | -------- | ---------------------------------- | ---------------------- |
 | `po_gen.py`             | 生成 PO    | `template.pot` + `<potstem>-translations.py` | `zh_TW.po`             |
 | `po_verify.py`          | 驗證 PO    | `template.pot` + `zh_TW.po`        | 報告 + exit code         |
+| `po_align_check.py`     | CLI 對齊檢查 | `template.pot` + `zh_TW.po`        | 報告 + exit code         |
 | `po_preflight.py`       | 來源檔預檢    | 來源 `.pot`／`.po`                    | 報告 + exit code         |
 | `po_to_pot.py`          | 萃取 POT   | 任意 PO                              | 無翻譯的 POT               |
 | `po_to_translations.py` | 抽出舊譯文    | 繁體中文 PO                            | `<potstem>-translations.py` |
@@ -370,7 +404,11 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
    uv run python3 skills/l10n-tw/scripts/po_verify.py <path/to/project.pot> <path/to/output.po> --comments
    msgfmt -cv <path/to/output.po> -o /dev/null
    ```
-4. **品質自檢清單**（見下方）逐項檢查。
+4. **對齊檢查**（CLI 求助文字）：
+   ```bash
+   uv run python3 skills/l10n-tw/scripts/po_align_check.py <path/to/project.pot> <path/to/output.po>
+   ```
+5. **品質自檢清單**（見下方）逐項檢查。
 
 注意：此路徑不產出 translations 檔，因此 `regression_test.py` 不會涵蓋這些專案——
 這是**已知限制**，不是省略其他檢查的理由。
@@ -437,7 +475,7 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 
 ### Phase 3 — 生成與驗證
 
-7. 執行「通用驗證步驟」：用語修正 → `po_gen.py` → `po_verify.py` + `msgfmt` → `regression_test.py`
+7. 執行「通用驗證步驟」：用語修正 → `po_gen.py` → `po_verify.py` + `msgfmt` → `po_align_check.py` → `regression_test.py`
   - `msgfmt` 驗證用參數：`-o /dev/null`，避免產生暫存檔 `messages.mo`
   - **完成標準：** `po_verify.py` 與 `msgfmt` 皆退出碼 0，且回歸測試所有專案 `[OK]`
 
@@ -449,9 +487,10 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 - [ ] **格式合法**：`msgfmt -cv` 退出碼 0，無 c-format 錯誤
 - [ ] **佔位符抽查**：`%s`／`%d`／`%1` 等變數與 msgid 一一對應（數量一致，語序可調）
 - [ ] **排版抽查**：中英／中數間半形空格、全形標點、快捷鍵格式符合 `references/l10n-tw-guide.md` 3.1–3.3（抽查新翻譯，不限全部條目）
+- [ ] **CLI 對齊檢查**：`po_align_check.py` 退出碼 0（適用含 CLI 求助文字的專案；無求助文字時印「無 CLI 求助對齊行」即視為通過）
 - [ ] **EOF／格式檢查**：產出 PO 以恰好一個換行結尾、無尾端空白（證據：`po_verify.py`／`po_preflight.py` 的檢查輸出，違反時退出碼非零）
 
-**完成標準：** 六項全部勾選並附輸出證據。任一項因工具限制無法自動執行時，必須改以人工檢查並在證據中載明方式——**不得以「工具只吃 translations.py」或「無 POT」為由跳過**（無 POT 時用 `po_to_pot.py` 萃取；工具真的不可用才允許人工替代）。
+**完成標準：** 七項全部勾選並附輸出證據。任一項因工具限制無法自動執行時，必須改以人工檢查並在證據中載明方式——**不得以「工具只吃 translations.py」或「無 POT」為由跳過**（無 POT 時用 `po_to_pot.py` 萃取；工具真的不可用才允許人工替代）。
 
 ### Phase 4 — 交付（事先詢問）
 
@@ -499,4 +538,6 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 10. **批次流程一定要合併回 translations 檔** — 若停留在 `apply_translations.py` 產出的 PO，`regression_test.py` 不會涵蓋
 11. **polib 未安裝** — 回歸測試報 `No module named 'polib'` 時，依「[環境準備](#環境準備首次執行必做)」執行 `uv venv` + `uv pip install polib`（順序不可顛倒）。`uv run` 在無 .venv 時會靜默退回裸 Python，不能以「指令能跑」判斷環境就緒
 12. **`split('\n')` 幻影尾元素** — 以換行結尾的輸入經 `text.split('\n')` 會多出 `''` 尾元素，join 重建後檔尾變雙換行。任何以「讀入 → 逐行處理 → 重建」為模式的腳本，輸出前必須過 `po_gen.normalize_eof()`（恰好一個 `\n`）；此類缺陷 `msgfmt`／條目級檢查看不見，須靠 `po_verify.py`／`po_preflight.py` 的 EOF 檢查攔截
+13. **`line` 譯為「列」而非「行」** — 指令套件的設定檔解析錯誤訊息（`line %d`、`%d lines`）中，line 依社群慣例譯為「列」（直行橫列）。`fix_terminology.py` 的 `對應「line」「lines」留意「行」` 錨定規則會掃描回報，但「行」也可能出現在合法複詞（換行、執行、行為、行號）中，須依 msgid 語境人工判定，不得一律機械替換
+14. **CLI 求助文字對齊** — 翻譯含 CJK 後選項寬度改變，補空格須依**顯示寬度**（CJK=2 欄）重算使說明欄位與原文一致；`po_align_check.py` 偵測偏移。譯文換行結構與原文不同（如合併續行）時檢查器會跳過該行——此時人工確認對齊即可。Tab 對齊的專案由 Tab 本身保證，檢查器自動跳過
 

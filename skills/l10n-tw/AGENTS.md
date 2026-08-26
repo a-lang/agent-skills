@@ -21,6 +21,9 @@ uv run python3 scripts/po_gen.py <path/to/template.pot> -t <path/to/template-tra
 # 驗證：檢查是否 100% 覆蓋、無模糊標記、註解保留
 uv run python3 scripts/po_verify.py <path/to/template.pot> <path/to/output.po> --comments
 
+# CLI 求助文字對齊檢查（顯示寬度，CJK=2 欄；無 CLI 求助文字時印通過訊息，退出碼 0）
+uv run python3 scripts/po_align_check.py <path/to/template.pot> <path/to/output.po>
+
 # 回歸測試：重新生成所有專案並比對已提交的 PO（在修改腳本後執行；--root 必填，執行前會要求確認，非互動環境加 --yes）
 uv run python3 scripts/regression_test.py --root <projects-dir>
 
@@ -32,6 +35,8 @@ uv run python3 scripts/merge_batches.py <batch1.json> <batch2.json> ... -o <path
 
 # 依 references/terminology.md 統一用語（輸入為 .po 檔時自動走 PO 模式掃描 msgstr）
 # 「不翻「X」」自動替換；「留意「X」」僅掃描不替換（語境敏感，人工判定，見 SKILL.md）
+# 英文錨定：`對應「anchor」` 前的標記只在 msgid 命中錨定詞（詞界、大小寫不敏感）時作用，
+# 如 對應「line」「lines」留意「行」（line 語境應譯「列」，合法複詞如換行保留）
 uv run python3 scripts/fix_terminology.py <path/to/translations.py_or_po>
 ```
 

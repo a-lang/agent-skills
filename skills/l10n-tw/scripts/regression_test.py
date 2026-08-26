@@ -221,6 +221,20 @@ def main():
             results.append((project_dir.name, "FAIL", "po_verify.py reported mismatch"))
             continue
 
+        # CLI help text alignment (display-width aware)
+        r = run(
+            [
+                sys.executable,
+                str(SCRIPTS / "po_align_check.py"),
+                str(pot_file),
+                str(gen_po),
+            ]
+        )
+        if r.returncode != 0:
+            print(r.stdout[-1500:])
+            results.append((project_dir.name, "FAIL", "po_align_check.py reported alignment issues"))
+            continue
+
         # Compare msgstr content
         try:
             committed_trans = parse_po_translations(committed)

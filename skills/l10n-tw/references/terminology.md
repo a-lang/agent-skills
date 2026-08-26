@@ -2,6 +2,17 @@
 
 翻譯常用詞彙統一對照，來源為 [L10N TW 詞彙對照表](https://hackmd.io/@l10n-tw/glossaries) 與既有專案慣用語。
 
+## 標記語法
+
+備註欄（最後一欄）的標記由 `fix_terminology.py` 解析：
+
+- `不翻「X」` — **禁用詞**（中國用語），自動替換為本列 TW 欄位譯法
+- `留意「X」` — **僅掃描不替換**（語境敏感），回報後人工判定
+- `對應「anchor」` — **英文錨定**：可先寫多個（OR 語意），其後的 `不翻`／`留意` 標記只在
+  msgid 命中錨定詞（詞界、大小寫不敏感）時才作用；`對應` 之前的標記維持全局行為。
+  範例：`對應「line」「lines」留意「行」`＝msgid 含 line/lines 且 msgstr 用「行」時回報；
+  `對應「keyring」「key ring」不翻「金鑰環」`＝msgid 含 keyring/key ring 時自動改為「鑰匙圈」。
+
 ## 通用詞彙
 
 | English | 繁體中文 | 備註 |
@@ -48,7 +59,7 @@
 | Cache | 快取 | 不翻「緩存」、亦作：快取記憶體、快取記憶體是 CPU 內暫時存放資料之處，存取速度略慢於 CPU 暫存器，而顯著快於主記憶體。除了用於計算機結構，快取也廣泛在資訊科技領域出現。 |
 | Call | 呼叫 | 不翻「調用」、此指叫用 (invoke) 函式或副程式 (subroutine) 的過程 |
 | cancel | 取消 |  |
-| Character | 字元 | 不翻「字符」 |
+| Character | 字元 | 留意「字符」、字符 可能是合法複詞的一部分（如「脫字符號」= caret notation），人工判定 |
 | Chip | 晶片 |  |
 | Class | 類別 | 此指一些物件導向程式語言中，可讓程式設計者自訂的資料型別 |
 | Client | 用戶端 | 不翻「客戶端」 |
@@ -128,11 +139,11 @@
 | Interpreter | 直譯器 | 不翻「解釋器」 |
 | Introduce | 介紹 | 留意「推介」 |
 | Kernel | （作業系統）核心 | 不翻「內核」、建議不省略作業系統部份，避免造成閱聽者理解困擾 |
-| Keyring | 鑰匙圈 |  |
+| Keyring | 鑰匙圈 | 對應「keyring」「key ring」不翻「金鑰環」 |
 | Kit | 套件 | 不翻「工具包」 |
 | LAN | LAN | 不翻「區域網」、亦作：區域網路、全稱為 Local Area Network |
 | Library | 函式庫 | 亦作：程式庫 |
-| Line | 列 | 直行橫列 |
+| Line | 列 | 直行橫列；對應「line」「lines」留意「行」 |
 | Link | 連結 | 亦作：鏈結、Firefox 正體中文版沿襲 Netscape 用詞譯作「鏈結」。<br>強調相互結合的意境時，譯作「[連結](https://dict.revised.moe.edu.tw/dictView.jsp?ID=64001)」，例如「動態連結函式庫」(dynamic-link library)，而強調資料因結合而呈現[鏈狀](https://dict.revised.moe.edu.tw/dictView.jsp?ID=3626)樣貌，用「鏈結」，如鏈結串列 (linked list)。 |
 | Linked List | 鏈結串列 | 不翻「鍊表」、一種資料結構 |
 | Load | 載入 | 不翻「加載」 |

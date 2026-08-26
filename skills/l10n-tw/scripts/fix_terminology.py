@@ -7,14 +7,30 @@ Two marker styles in terminology.md:
 - 留意「XX」 — soft note: terms are only reported (scan-only), never replaced,
   because the term may be legitimate in other contexts (e.g. 文件 as document).
 
+English-anchored variant (new): prefix markers with 對應「anchor」, one 對應
+marker per anchor word (multiple anchors accumulate, OR semantics). An anchored
+marker only fires when the msgid contains any anchor word (word-bounded,
+case-insensitive):
+
+- 對應「line」「lines」留意「行」  → scan-only when msgid contains line/lines
+                                     and msgstr uses 行
+- 對應「keyring」「key ring」不翻「金鑰環」 → auto-replace when msgid contains
+                                     keyring/key ring
+
+Markers before the first 對應 marker in a cell are global (as before); markers
+after it are anchored by the accumulated anchors. This keeps the existing
+130+ unanchored rows fully backward compatible.
+
 Auto-replace also guards against substring traps: if the banned term is a
 substring of the TW equivalent (e.g. 應用 → 應用程式), the replacement would
 corrupt existing translations (應用程式 → 應用程式程式), so such entries are
 downgraded to scan-only.
 
 Two input modes:
-- translations.py (default): replaces terms inside the dict values.
-- .po file: replaces terms inside every msgstr (including msgstr[n]).
+- translations.py (default): replaces terms inside the dict values; anchored
+  rules are matched against the dict key (the msgid).
+- .po file: replaces terms inside every msgstr (including msgstr[n]); anchored
+  rules are matched against the entry's msgid (msgid_plural included).
 
 Usage:
     uv run python3 skills/l10n-tw/scripts/fix_terminology.py \
@@ -30,20 +46,44 @@ import sys
 from pathlib import Path
 
 from po_gen import normalize_eof
-
+from po_verify import parse_entries
 
 DEFAULT_TERMS_PATH = Path(__file__).resolve().parents[1] / "references" / "terminology.md"
 
 REPLACE_RE = re.compile(r'不翻「([^」]+)」')
 SCAN_RE = re.compile(r'留意「([^」]+)」')
+ANCHOR_RE = re.compile(r'對應「([^」]+)」')
+MARKER_RE = re.compile(
+    r'對應((?:「[^」]+」)+)|不翻「([^」]+)」|留意「([^」]+)」'
+)
 
 
-def load_replacements(terms_path: Path) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
-    """Parse terminology.md and return (auto_replace, scan_only) pairs.
+def anchor_regex(anchors: list[str]) -> re.Pattern:
+    """Build a word-bounded, case-insensitive regex from anchor words.
+
+    Word boundaries are emulated with lookarounds so that words inside
+    larger identifiers (recvline, headline) never match, while line in
+    command-line or "key ring" with a space still do.
+    """
+    alts = "|".join(re.escape(a) for a in anchors)
+    return re.compile(rf'(?<![A-Za-z0-9_])(?:{alts})(?![A-Za-z0-9_])', re.IGNORECASE)
+
+
+def load_replacements(terms_path: Path) -> tuple[
+    list[tuple[str, str]],           # auto: (old, new) — global
+    list[tuple[str, str]],           # scan: (old, new) — global
+    list[tuple[re.Pattern, str, str]],  # anchor auto: (pattern, old, new)
+    list[tuple[re.Pattern, str, str]],  # anchor scan: (pattern, old, new)
+]:
+    """Parse terminology.md and return (auto, scan, anchor_auto, anchor_scan).
 
     Looks for lines like:
         | default | 預設 | 不翻「默認」 |        → auto-replace 默認 → 預設
         | File | 檔案 | 留意「文件」 |           → scan-only, never replaced
+        | Keyring | 鑰匙圈 | 對應「keyring」「key ring」不翻「金鑰環」 |
+            → anchored auto-replace when msgid contains keyring/key ring
+        | Line | 列 | 對應「line」「lines」留意「行」 |
+            → anchored scan-only when msgid contains line/lines
 
     A banned term that equals or is a substring of the TW equivalent is
     downgraded to scan-only (would corrupt existing translations, e.g.
@@ -52,6 +92,8 @@ def load_replacements(terms_path: Path) -> tuple[list[tuple[str, str]], list[tup
     text = terms_path.read_text(encoding='utf-8')
     auto: list[tuple[str, str]] = []
     scan: list[tuple[str, str]] = []
+    anchor_auto: list[tuple[re.Pattern, str, str]] = []
+    anchor_scan: list[tuple[re.Pattern, str, str]] = []
     auto_seen: set[str] = set()
     scan_seen: set[str] = set()
 
@@ -61,9 +103,32 @@ def load_replacements(terms_path: Path) -> tuple[list[tuple[str, str]], list[tup
         if len(cells) < 4:
             continue
         tw_term = cells[-3]
+        note = cells[-2] if len(cells) >= 5 else ''
 
-        def add(terms: str, auto_replace: bool):
-            for old in terms.split('/'):
+        # Walk the note cell left to right; anchors accumulate and apply to
+        # markers appearing after them.
+        anchors: list[str] = []
+        local_auto: list[str] = []
+        local_scan: list[str] = []
+        local_a_auto: list[tuple[list[str], str]] = []
+        local_a_scan: list[tuple[list[str], str]] = []
+        for m in MARKER_RE.finditer(note):
+            if m.group(1) is not None:
+                # One 對應 marker may carry multiple 「anchor」 groups.
+                anchors.extend(re.findall(r'「([^」]+)」', m.group(1)))
+            elif m.group(2) is not None:
+                if anchors:
+                    local_a_auto.append((list(anchors), m.group(2)))
+                else:
+                    local_auto.append(m.group(2))
+            elif m.group(3) is not None:
+                if anchors:
+                    local_a_scan.append((list(anchors), m.group(3)))
+                else:
+                    local_scan.append(m.group(3))
+
+        def add(terms: list[str], auto_replace: bool):
+            for old in terms:
                 old = old.strip()
                 if not old:
                     continue
@@ -78,12 +143,24 @@ def load_replacements(terms_path: Path) -> tuple[list[tuple[str, str]], list[tup
                     scan.append((old, tw_term))
                     scan_seen.add(old)
 
-        for m in REPLACE_RE.finditer(line):
-            add(m.group(1), auto_replace=True)
-        for m in SCAN_RE.finditer(line):
-            add(m.group(1), auto_replace=False)
+        def add_anchored(rules: list[tuple[list[str], str]], auto_replace: bool):
+            for anchors, old in rules:
+                old = old.strip()
+                if not old:
+                    continue
+                trap = auto_replace and (old == tw_term or old in tw_term)
+                pat = anchor_regex(anchors)
+                if auto_replace and not trap:
+                    anchor_auto.append((pat, old, tw_term))
+                else:
+                    anchor_scan.append((pat, old, tw_term))
 
-    return auto, scan
+        add(local_auto, auto_replace=True)
+        add(local_scan, auto_replace=False)
+        add_anchored(local_a_auto, auto_replace=True)
+        add_anchored(local_a_scan, auto_replace=False)
+
+    return auto, scan, anchor_auto, anchor_scan
 
 
 def load_translations(path: Path) -> dict:
@@ -215,11 +292,40 @@ def block_content(block: list[str]) -> str:
     return decode_po(''.join(parts))
 
 
-def fix_po_file(path: Path, replacements: list[tuple[str, str]]) -> int:
+def entry_msgid(entry: str) -> str:
+    """Extract the raw msgid of a single PO entry, msgid_plural included.
+
+    Reuses po_verify.parse_entries, which handles multi-line msgids correctly
+    (a hand-rolled single-line regex silently drops wrapped msgids), then
+    appends the msgid_plural forms so anchored rules fire when the plural
+    contains the anchor word but the singular does not.
+    """
+    pairs = parse_entries(entry)
+    msgid = pairs[0][0] if pairs else ''
+    lines = entry.split('\n')
+    for j, line in enumerate(lines):
+        m = re.match(r'^msgid_plural\s+"(.*)"$', line)
+        if not m:
+            continue
+        parts = [m.group(1)]
+        for k in range(j + 1, len(lines)):
+            if not lines[k].startswith('"'):
+                break
+            mm = re.match(r'^"(.*)"$', lines[k])
+            if mm:
+                parts.append(mm.group(1))
+        msgid += ''.join(parts)
+    return msgid
+
+
+def fix_po_file(path: Path, auto: list[tuple[str, str]],
+                anchor_auto: list[tuple[re.Pattern, str, str]]) -> int:
     """Apply replacements to every msgstr of a PO file, in place.
 
-    Operates at the text level so comments, msgid and multi-line formatting
-    are preserved verbatim; only the msgstr content is rewritten.
+    Global replacements apply to every entry; anchored replacements only to
+    entries whose msgid matches the anchor. Operates at the text level so
+    comments, msgid and multi-line formatting are preserved verbatim; only the
+    msgstr content is rewritten.
     """
     text = path.read_text(encoding='utf-8')
     entries = text.split('\n\n')
@@ -230,6 +336,11 @@ def fix_po_file(path: Path, replacements: list[tuple[str, str]]) -> int:
             continue
         blocks = msgstr_blocks(entry)
         if not blocks:
+            continue
+        msgid = entry_msgid(entry)
+        anchored = [(old, new) for pat, old, new in anchor_auto if pat.search(msgid)]
+        replacements = auto + anchored
+        if not replacements:
             continue
         changed = False
         lines = entry.split('\n')
@@ -273,6 +384,24 @@ def iter_po_contents(path: Path) -> list[str]:
     return contents
 
 
+def iter_po_anchored_hits(path: Path,
+                          anchor_scan: list[tuple[re.Pattern, str, str]]) -> list[tuple[str, str, str]]:
+    """Return (msgid, term, msgstr) hits for anchored scan rules in a PO file."""
+    text = path.read_text(encoding='utf-8')
+    hits: list[tuple[str, str, str]] = []
+    for entry in text.split('\n\n'):
+        if not entry.strip():
+            continue
+        msgid = entry_msgid(entry)
+        for pat, old, _new in anchor_scan:
+            if pat.search(msgid):
+                for block in msgstr_blocks(entry):
+                    content = block_content(block)
+                    if old in content:
+                        hits.append((msgid, old, content))
+    return hits
+
+
 def count_remaining(items: list[str], pairs: list[tuple[str, str]]) -> dict[str, int]:
     """Count occurrences of terms across items."""
     remaining: dict[str, int] = {}
@@ -297,6 +426,20 @@ def report_remaining(auto_remaining: dict[str, int], scan_remaining: dict[str, i
         print("✅ All target terms cleaned")
 
 
+def report_anchored_scan(hits: list[tuple[str, str, str]]):
+    """Print anchored scan hits with msgid context (deduplicated by msgid)."""
+    if not hits:
+        return
+    print("👀 錨定掃描命中（msgid 含英文錨定詞，msgstr 含疑慮詞）— 逐條人工判定語境後修正或保留：")
+    seen: set[str] = set()
+    for msgid, term, msgstr in hits:
+        if msgid in seen:
+            continue
+        seen.add(msgid)
+        print(f'  msgid:  {msgid[:70]!r}')
+        print(f'  msgstr: {msgstr[:70]!r}   (含「{term}」)')
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Apply terminology fixes from terminology.md to translations.py or a .po file"
@@ -317,15 +460,18 @@ def main():
         print(f"❌ Terms file not found: {args.terms}", file=sys.stderr)
         sys.exit(1)
 
-    auto, scan = load_replacements(args.terms)
-    print(f"Loaded {len(auto)} auto-replace + {len(scan)} scan-only terms from {args.terms}")
+    auto, scan, anchor_auto, anchor_scan = load_replacements(args.terms)
+    print(f"Loaded {len(auto)} auto-replace + {len(scan)} scan-only + "
+          f"{len(anchor_auto)} anchored auto + {len(anchor_scan)} anchored scan "
+          f"terms from {args.terms}")
 
     if args.target.suffix == '.po':
-        fixed = fix_po_file(args.target, auto)
+        fixed = fix_po_file(args.target, auto, anchor_auto)
         print(f"✅ Fixed {fixed} entries in {args.target}")
         contents = iter_po_contents(args.target)
         report_remaining(count_remaining(contents, auto),
                          count_remaining(contents, scan))
+        report_anchored_scan(iter_po_anchored_hits(args.target, anchor_scan))
         return
 
     translations = load_translations(args.target)
@@ -333,6 +479,9 @@ def main():
 
     for key, val in translations.items():
         new_val = fix_value(val, auto)
+        for pat, old, new in anchor_auto:
+            if pat.search(key):
+                new_val = fix_value(new_val, [(old, new)])
         if new_val != val:
             translations[key] = new_val
             fixed += 1
@@ -343,6 +492,15 @@ def main():
     items = [s for val in translations.values()
              for s in (val if isinstance(val, list) else [val])]
     report_remaining(count_remaining(items, auto), count_remaining(items, scan))
+
+    hits: list[tuple[str, str, str]] = []
+    for key, val in translations.items():
+        for pat, old, _new in anchor_scan:
+            if pat.search(key):
+                for s in (val if isinstance(val, list) else [val]):
+                    if old in s:
+                        hits.append((key, old, s))
+    report_anchored_scan(hits)
 
 
 if __name__ == '__main__':
