@@ -15,7 +15,7 @@ formatting (#:, #. multi-line references) is preserved verbatim.
 Features:
   - Handles multi-line msgid and msgstr (PO escape sequences)
   - Removes '#, fuzzy' from updated entries
-  - Updates header (PO-Revision-Date, Last-Translator, X-Generator)
+  - Updates header (PO-Revision-Date, Last-Translator)
   - Reports applied / skipped / missing stats
   - Exit code 0 even with missing keys (warn only); 1 on IO errors
 """
@@ -32,7 +32,6 @@ from po_gen import normalize_eof
 
 TRANSLATOR = "Translator Name <translator@example.org>"
 LANGUAGE = "zh_TW"
-X_GENERATOR = "Hermes Agent + apply_translations.py"
 
 
 def resolve_translator(cli_value: str | None) -> str:
@@ -133,7 +132,6 @@ def update_header(entry: str, translator: str = TRANSLATOR) -> str:
         'PO-Revision-Date': f'PO-Revision-Date: {now_po}',
         'Last-Translator': f'Last-Translator: {translator}',
         'Language': f'Language: {LANGUAGE}',
-        'X-Generator': f'X-Generator: {X_GENERATOR}',
     }
     lines = entry.split('\n')
     out: list[str] = []

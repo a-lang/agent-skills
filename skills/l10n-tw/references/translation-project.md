@@ -47,6 +47,10 @@
 
 - `Language-Team: Chinese (traditional) <zh-l10n@lists.slat.org>`
 - `Project-Id-Version: {PACKAGE-NAME} <版本>`（版本號碼可保留，名稱部分不可含版本）
+- `X-Bugs: Report translation errors to the Language-Team address.`
+
+> `po_gen.py` 無此參數，TP 專案生成 PO 後若標頭缺 `X-Bugs` 欄位，須手動補上
+> （於檔頭 `msgstr` 區塊內新增 `"X-Bugs: Report translation errors to the Language-Team address.\n"`）。
 
 ### 3. CLI 求助文字的輸出需做對齊檢查
 
@@ -73,6 +77,7 @@
 
 - [ ] 檔頭開頭註解符合 TP 樣板（僅 `{PACKAGE-NAME}` 置換，其餘不變）
 - [ ] 檔頭含 `Language-Team: Chinese (traditional) <zh-l10n@lists.slat.org>`
+- [ ] 檔頭含 `X-Bugs: Report translation errors to the Language-Team address.`（缺則手動補上）
 - [ ] 生成 PO 時有加 `--team "Chinese (traditional) <zh-l10n@lists.slat.org>"`
 - [ ] `po_align_check.py` 退出碼 0（CLI 求助文字對齊）
 - [ ] 已參考 <https://translationproject.org/html/translators.html> 的翻譯者注意事項

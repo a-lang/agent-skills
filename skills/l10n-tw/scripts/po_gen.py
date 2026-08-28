@@ -34,7 +34,6 @@ TRANSLATIONS: dict[str, str] = {}
 TRANSLATOR = "Translator Name <translator@example.org>"
 LANGUAGE = "zh_TW"
 LANGUAGE_TEAM = "Chinese (Traditional)"
-X_GENERATOR = "Hermes Agent + po_gen.py"
 
 
 def resolve_translator(cli_value: str | None) -> str:
@@ -228,8 +227,7 @@ def format_msgstr(text: str | list[str] | tuple[str, ...]) -> list[str]:
 def generate_po(pot_path: str, translations: dict[str, str],
                 language: str = LANGUAGE,
                 translator: str = TRANSLATOR,
-                team: str = LANGUAGE_TEAM,
-                generator: str = X_GENERATOR) -> str:
+                team: str = LANGUAGE_TEAM) -> str:
     """Generate a complete PO file from a POT and translation map."""
     with open(pot_path, 'r', encoding='utf-8') as f:
         pot_content = f.read()
@@ -266,7 +264,6 @@ def generate_po(pot_path: str, translations: dict[str, str],
                 'Last-Translator': f'Last-Translator: {translator}',
                 'Language-Team': f'Language-Team: {team}',
                 'Language': f'Language: {language}',
-                'X-Generator': f'X-Generator: {generator}',
             }
             new_msgstr = []
             seen_keys = set()
