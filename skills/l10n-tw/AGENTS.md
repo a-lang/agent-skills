@@ -54,7 +54,8 @@ uv run python3 scripts/fix_terminology.py <path/to/translations.py_or_po>
 
 ## 閘門（審查點）——依 SKILL.md
 
-- **品質自檢 GATE**：進入交付前，必須完成 SKILL.md「交付前品質自檢清單」六項（用語掃描／完整性／格式合法／佔位符／排版抽查／EOF 格式）並**展示輸出證據**；工具不適用時不得跳過，改用替代方式（如 `po_to_pot.py` 萃取 POT 後仍跑 `po_verify.py`）
+- **品質自檢 GATE**：進入交付前，必須完成 SKILL.md「交付前品質自檢清單」八項（用語掃描／完整性／格式合法／佔位符／排版抽查／CLI 對齊檢查／TP 檔頭檢查（限 TP 專案）／EOF 格式）並**展示輸出證據**；工具不適用時不得跳過，改用替代方式（如 `po_to_pot.py` 萃取 POT 後仍跑 `po_verify.py`）
+- **TP 專案**：來源為 Translation Project 平台專案時，品質驗收依 `references/translation-project.md`（檔頭註解 TP 樣板、`--team "Chinese (traditional) <zh-l10n@lists.slat.org>"`、CLI 對齊檢查、translators.html 注意事項）
 - 以下四項操作在執行前都需要使用者確認：
 1. 翻譯計畫（來源格式／條數／情境流程／既有翻譯去留／提交方式／翻譯者身份）
 2. 生成的 PO 檔案輸出

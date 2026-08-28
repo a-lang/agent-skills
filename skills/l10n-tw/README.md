@@ -22,6 +22,7 @@
 |---|---|
 | [自由軟體正體中文化工作流程規範](https://hackmd.io/@l10n-tw/translation_guidelines) | 基本守則、譯文格式規範（標點／空格排版／快捷鍵字元／變數位置／日期時間）、PO 檔頭格式、模糊與已淘汰譯文處理 |
 | [自由軟體正體中文化翻譯風格指引](https://hackmd.io/@l10n-tw/translation_style_guide) | 術語訂立方法（理解→貼近→發想）、直譯／意譯／改寫等翻譯風格、情境限定對等直譯原則 |
+| [Translation Project](https://translationproject.org/) | 來源檔來自 TP 平台時的檔頭格式與品質驗收規範（見 `references/translation-project.md`） |
 
 上述規範已整理為技能內的 `references/l10n-tw-guide.md`（詳見該檔開頭的參考文件清單）。
 
@@ -37,7 +38,8 @@ l10n-tw/                       # 技能目錄（安裝時複製或連結此目�
 │   ├── terminology.md         # 用語對照表
 │   ├── locale.md              # 語言環境命名策略
 │   ├── github.md              # GitHub 操作參考
-│   └── gettext-tools.md       # gettext 工具組參考
+│   ├── gettext-tools.md       # gettext 工具組參考
+│   └── translation-project.md # TP 平台專案品質驗收規範
 └── scripts/                   # 10 支 Python 工具腳本
 ```
 

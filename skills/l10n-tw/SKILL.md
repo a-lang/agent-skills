@@ -28,6 +28,9 @@ metadata:
 - **PO 檔頭格式規範** — 檔頭必填欄位與範例
 - **語言地區表示法** — 正體中文 vs 繁體中文、各語言文字體系譯法
 
+> 來源檔來自 [Translation Project](https://translationproject.org/) 平台時，
+> 翻譯完成後的品質驗收須符合 [`references/translation-project.md`](references/translation-project.md) 的 TP 格式條件。
+
 ## 目錄結構
 
 ```
@@ -38,7 +41,8 @@ l10n-tw/
 │   ├── terminology.md              # 用語對照表
 │   ├── github.md                   # GitHub 操作參考
 │   ├── locale.md                   # 語言環境命名策略
-│   └── gettext-tools.md            # gettext 工具組參考
+│   ├── gettext-tools.md            # gettext 工具組參考
+│   └── translation-project.md      # TP 平台專案品質驗收規範（來源為 TP 時必讀）
 ├── scripts/
 │   ├── po_gen.py                     # POT + <potstem>-translations.py → PO
 │   ├── po_verify.py                  # POT ↔ PO 驗證比對
@@ -295,6 +299,8 @@ uv run python3 skills/l10n-tw/scripts/po_gen.py \
 >
 > **Translation Project 專案**：標頭須符合 TP 格式，生成時務必加上
 > `--team "Chinese (traditional) <zh-l10n@lists.slat.org>"`。
+> 檔頭開頭註解（`SOME DESCRIPTIVE TITLE.` 樣板）、{PACKAGE-NAME} 判定與品質驗收條件，
+> 詳見 [`references/translation-project.md`](references/translation-project.md)。
 
 **完成標準**：輸出顯示「All entries translated」，無 missing，且輸出檔案位於與 POT 相同（或專案指定）的目錄。
 
@@ -488,9 +494,10 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 - [ ] **佔位符抽查**：`%s`／`%d`／`%1` 等變數與 msgid 一一對應（數量一致，語序可調）
 - [ ] **排版抽查**：中英／中數間半形空格、全形標點、快捷鍵格式符合 `references/l10n-tw-guide.md` 3.1–3.3（抽查新翻譯，不限全部條目）
 - [ ] **CLI 對齊檢查**：`po_align_check.py` 退出碼 0（適用含 CLI 求助文字的專案；無求助文字時印「無 CLI 求助對齊行」即視為通過）
+- [ ] **TP 檔頭檢查**：來源為 Translation Project 平台專案時，依 `references/translation-project.md`「TP 品質驗收清單」逐項勾選（非 TP 專案免勾）
 - [ ] **EOF／格式檢查**：產出 PO 以恰好一個換行結尾、無尾端空白（證據：`po_verify.py`／`po_preflight.py` 的檢查輸出，違反時退出碼非零）
 
-**完成標準：** 七項全部勾選並附輸出證據。任一項因工具限制無法自動執行時，必須改以人工檢查並在證據中載明方式——**不得以「工具只吃 translations.py」或「無 POT」為由跳過**（無 POT 時用 `po_to_pot.py` 萃取；工具真的不可用才允許人工替代）。
+**完成標準：** 八項全部勾選並附輸出證據。任一項因工具限制無法自動執行時，必須改以人工檢查並在證據中載明方式——**不得以「工具只吃 translations.py」或「無 POT」為由跳過**（無 POT 時用 `po_to_pot.py` 萃取；工具真的不可用才允許人工替代）。
 
 ### Phase 4 — 交付（事先詢問）
 

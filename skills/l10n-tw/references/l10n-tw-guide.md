@@ -271,6 +271,13 @@ msgstr ""
 - `Plural-Forms`：正體中文用 `nplurals=1; plural=0;`
 - 確認 `#, fuzzy` 已從檔頭移除
 
+### Translation Project（TP）專案
+
+來源檔來自 [Translation Project](https://translationproject.org/) 平台時，檔頭**開頭註解**
+須符合 TP 樣板（`SOME DESCRIPTIVE TITLE.` 四行，僅專案名稱置換，其餘保持不變），
+並於生成時加上 `--team "Chinese (traditional) <zh-l10n@lists.slat.org>"`。
+詳細格式與品質驗收條件見 [`translation-project.md`](translation-project.md)。
+
 ---
 
 ## 五、語言地區表示法
