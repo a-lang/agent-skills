@@ -21,17 +21,26 @@
 
 ### 1. 檔頭開頭註解須符合 TP 格式
 
-標頭的開頭註解需符合以下格式（`{PACKAGE-NAME}` 置換成專案名稱，**其餘保持不變**）：
+標頭的開頭註解需符合以下格式：
 
 ```po
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2026 Free Software Foundation, Inc.
 # This file is distributed under the same license as the {PACKAGE-NAME} package.
-# AUTHOR NAME <EMAIL@ADDRESS>, 2026.
+# {AUTHOR-NAME <EMAIL@ADDRESS>}, 2026.
 #
 ```
 
-- `SOME DESCRIPTIVE TITLE.`、`Free Software Foundation, Inc.`、`AUTHOR NAME <EMAIL@ADDRESS>` 等字樣保持不變
+- `SOME DESCRIPTIVE TITLE.`、`Free Software Foundation, Inc.` 等字樣保持不變
+- `{PACKAGE-NAME}` 置換成專案名稱
+- `{AUTHOR-NAME <EMAIL@ADDRESS>}` 判定方式：
+  1. 從來源 POT 檔頭註解區（`msgid ""` 之前的 `#` 註解行）搜尋作者資訊
+  2. 找到實際作者資訊時依查得結果填寫：
+     - 查到「名稱 <郵箱>」→ 沿用名稱與郵箱
+     - 只查到名稱、無郵箱 → `名稱 <email@address>`
+  3. 查無資訊 → 填 `FIRST AUTHOR <email@address>`
+
+  > 作者行僅為樣板預設字樣（`FIRST AUTHOR <EMAIL@ADDRESS>`／`AUTHOR NAME <EMAIL@ADDRESS>`）視為查無資訊，走規則 3；郵箱一律小寫 `email@address`。
 - 年份以當前年份為準（本文件範例為 2026）
 - 四行註解後接一個空的 `#` 行，再接 `msgid ""`
 
@@ -59,7 +68,7 @@
 
 ### 4. 翻譯者注意事項
 
-更多翻譯者要注意的事項，可參考：<https://translationproject.org/html/translators.html>
+更多翻譯者要注意的事項，可參考：[https://translationproject.org/html/translators.html](https://translationproject.org/html/translators.html)
 
 重點摘要：
 
@@ -75,9 +84,10 @@
 
 進入交付前（依 `SKILL.md`「品質自檢清單」GATE）逐項檢查：
 
-- [ ] 檔頭開頭註解符合 TP 樣板（僅 `{PACKAGE-NAME}` 置換，其餘不變）
+- [ ] 檔頭開頭註解符合 TP 樣板
 - [ ] 檔頭含 `Language-Team: Chinese (traditional) <zh-l10n@lists.slat.org>`
 - [ ] 檔頭含 `X-Bugs: Report translation errors to the Language-Team address.`（缺則手動補上）
 - [ ] 生成 PO 時有加 `--team "Chinese (traditional) <zh-l10n@lists.slat.org>"`
 - [ ] `po_align_check.py` 退出碼 0（CLI 求助文字對齊）
-- [ ] 已參考 <https://translationproject.org/html/translators.html> 的翻譯者注意事項
+- [ ] 已參考 [https://translationproject.org/html/translators.html](https://translationproject.org/html/translators.html) 的翻譯者注意事項
+
