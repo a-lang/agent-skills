@@ -24,14 +24,13 @@
 標頭的開頭註解需符合以下格式：
 
 ```po
-# SOME DESCRIPTIVE TITLE.
+# Traditional Chinese Messages for {PACKAGE-NAME}
 # Copyright (C) {YEAR} Free Software Foundation, Inc.
 # This file is distributed under the same license as the {PACKAGE-NAME} package.
 # {FIRST AUTHOR <EMAIL@ADDRESS>}, {YEAR}.
 #
 ```
 
-- `SOME DESCRIPTIVE TITLE.`、`Free Software Foundation, Inc.` 等字樣保持不變
 - `{PACKAGE-NAME}` 置換成專案名稱
 - `{FIRST AUTHOR <EMAIL@ADDRESS>}` 判定方式：
   1. 填入翻譯者的名稱與郵件地址（翻譯者身份依 `SKILL.md`「翻譯者身份（Last-Translator）」解析：`--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `skills/l10n-tw/.env` 設定檔）
