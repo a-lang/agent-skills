@@ -25,18 +25,18 @@
 
 ```po
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 Free Software Foundation, Inc.
+# Copyright (C) {YEAR} Free Software Foundation, Inc.
 # This file is distributed under the same license as the {PACKAGE-NAME} package.
-# {AUTHOR-NAME <EMAIL@ADDRESS>}, 2026.
+# {FIRST AUTHOR <EMAIL@ADDRESS>}, {YEAR}.
 #
 ```
 
 - `SOME DESCRIPTIVE TITLE.`、`Free Software Foundation, Inc.` 等字樣保持不變
 - `{PACKAGE-NAME}` 置換成專案名稱
-- `{AUTHOR-NAME <EMAIL@ADDRESS>}` 判定方式：
+- `{FIRST AUTHOR <EMAIL@ADDRESS>}` 判定方式：
   1. 填入翻譯者的名稱與郵件地址（翻譯者身份依 `SKILL.md`「翻譯者身份（Last-Translator）」解析：`--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `skills/l10n-tw/.env` 設定檔）
   2. 保留既有作者行（若有，如情境 B 沿用既有翻譯時），在其後依序新增目前翻譯者
-- 年份以當前年份為準（本文件範例為 2026）
+- 年份 `{YEAR}` 以當前年份為準（本文件範例為 2026）
 - 四行註解後接一個空的 `#` 行，再接 `msgid ""`
 
 > `po_gen.py` 只覆寫檔頭 `msgstr` 區塊的欄位（`Last-Translator`、`Language-Team` 等），
@@ -71,9 +71,9 @@
 重點摘要：
 
 - **檔頭開頭註解**：每支 PO 檔以四行（或以上）註解開頭，順序為：標題行 → 版權行 →
-  授權聲明行 → 作者行。`PACKAGE` 置換為專案名稱（全小寫）；`YEAR` 置換為當前年份
+授權聲明行 → 作者行。`PACKAGE` 置換為專案名稱（全小寫）；`YEAR` 置換為當前年份
 - **檔頭欄位**：TP robot 對檔頭欄位內容「非常挑剔」，務必填妥 `Project-Id-Version`、
-  `PO-Revision-Date`、`Last-Translator`、`Language-Team`
+`PO-Revision-Date`、`Last-Translator`、`Language-Team`
 - **提交前驗證**：使用 `msgfmt -cv yourfile.po` 檢查格式
 - **著作權聲明**：部分 TP 專案要求翻譯者簽署免責聲明（disclaimer），提交前請確認
 - **團隊流程**：翻譯完成後可先送交團隊郵遞清單審閱，再透過 sendpo.sh 等機制提交給 TP robot
