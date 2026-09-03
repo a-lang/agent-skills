@@ -34,15 +34,13 @@
 - `SOME DESCRIPTIVE TITLE.`、`Free Software Foundation, Inc.` 等字樣保持不變
 - `{PACKAGE-NAME}` 置換成專案名稱
 - `{AUTHOR-NAME <EMAIL@ADDRESS>}` 判定方式：
-  1. 從來源 POT 檔頭註解區（`msgid ""` 之前的 `#` 註解行）搜尋作者資訊
-  2. 找到實際作者資訊時依查得結果填寫：
-     - 查到「名稱 <郵箱>」→ 沿用名稱與郵箱
-     - 只查到名稱、無郵箱 → `名稱 <email@address>`
-  3. 查無資訊 → 填 `FIRST AUTHOR <email@address>`
-
-  > 作者行僅為樣板預設字樣（`FIRST AUTHOR <EMAIL@ADDRESS>`／`AUTHOR NAME <EMAIL@ADDRESS>`）視為查無資訊，走規則 3；郵箱一律小寫 `email@address`。
+  1. 填入翻譯者的名稱與郵件地址（翻譯者身份依 `SKILL.md`「翻譯者身份（Last-Translator）」解析：`--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `skills/l10n-tw/.env` 設定檔）
+  2. 保留既有作者行（若有，如情境 B 沿用既有翻譯時），在其後依序新增目前翻譯者
 - 年份以當前年份為準（本文件範例為 2026）
 - 四行註解後接一個空的 `#` 行，再接 `msgid ""`
+
+> `po_gen.py` 只覆寫檔頭 `msgstr` 區塊的欄位（`Last-Translator`、`Language-Team` 等），
+> 註解區（`#` 行）原樣保留 POT 內容；生成 PO 後若缺作者行、或作者行非目前翻譯者，須手動補上／更新。
 
 ### 2. 檔頭 msgstr 欄位須符合 TP 格式
 
