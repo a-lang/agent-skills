@@ -316,9 +316,7 @@ def generate_po(pot_path: str, translations: dict[str, str],
             continue
 
         stats['total'] += 1
-        comments = get_comments(entry)
         msgctxt = get_msgctxt(entry)
-        msgid_plural = get_msgid_plural(entry)
         lookup_key = (msgctxt + '\x04' + msgid) if msgctxt else msgid
         translation = translations.get(lookup_key, None)
 
@@ -326,56 +324,20 @@ def generate_po(pot_path: str, translations: dict[str, str],
             stats['translated'] += 1
             stats['from_map'] += 1
 
-            # Build entry: comments + msgctxt + msgid + msgid_plural + msgstr
-            entry_lines = list(comments)
-            if msgctxt:
-                raw_ctxt = encode_po(msgctxt)
-                if '\n' in msgctxt:
-                    entry_lines.append(f'msgctxt ""')
-                    for part in msgctxt.split('\n'):
-                        entry_lines.append(f'"{encode_po(part + "\n")}"')
-                else:
-                    entry_lines.append(f'msgctxt "{raw_ctxt}"')
-
-            # Format msgid (preserve multi-line from source)
-            msgid_lines = []
-            decoded_msgid = msgid  # get_msgid already decoded
-            # Re-encode for output
-            raw_msgid = encode_po(decoded_msgid)
-            if is_multiline_po(decoded_msgid) or '\n' in decoded_msgid:
-                msgid_lines.append('msgid ""')
-                # Split on newline, then add trailing \n back to all but the
-                # last segment — PO multi-line format keeps a trailing \n on
-                # every line except the last (matches xgettext output).
-                parts = decoded_msgid.split('\n')
-                for i, part in enumerate(parts):
-                    if i < len(parts) - 1:
-                        part = part + '\n'
-                    msgid_lines.append(f'"{encode_po(part)}"')
-            else:
-                msgid_lines.append(f'msgid "{raw_msgid}"')
-
-            # Format msgid_plural if present
-            if msgid_plural:
-                decoded_plural = decode_po(msgid_plural)
-                raw_plural = encode_po(decoded_plural)
-                if is_multiline_po(decoded_plural) or '\n' in decoded_plural:
-                    msgid_lines.append('msgid_plural ""')
-                    parts = decoded_plural.split('\n')
-                    for i, part in enumerate(parts):
-                        if i < len(parts) - 1:
-                            part = part + '\n'
-                        msgid_lines.append(f'"{encode_po(part)}"')
-                else:
-                    msgid_lines.append(f'msgid_plural "{raw_plural}"')
-
-            entry_lines.extend(msgid_lines)
+            # Preserve the POT entry head (comments + msgctxt + msgid +
+            # msgid_plural) verbatim: the msgid must match the upstream POT
+            # byte-for-byte (including line wrapping), so copy the original
+            # lines instead of re-assembling them. Only the msgstr is replaced.
+            head_lines: list[str] = []
+            for line in entry.split('\n'):
+                if re.match(r'^msgstr(?:\[\d+\])?\s+', line):
+                    break
+                head_lines.append(line)
 
             # Format msgstr (handles plural forms if translation is a list/tuple)
-            entry_lines.extend(format_msgstr(translation))
+            result = '\n'.join(head_lines) + '\n' + '\n'.join(format_msgstr(translation))
 
-            # Remove fuzzy if present
-            result = '\n'.join(entry_lines)
+            # Remove fuzzy if present (preserving other flags)
             if has_fuzzy(result):
                 result = remove_fuzzy(result)
             output_entries.append(result)

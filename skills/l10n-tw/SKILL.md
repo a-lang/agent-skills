@@ -4,7 +4,7 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "2.2"
+  version: "2.1"
   hermes:
     tags:
       - l10n
@@ -533,7 +533,7 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 
 ## 已知坑
 
-1. **多行 msgid** — PO 標準格式把長字串跨多行續寫。`po_gen.py` 有對應支援，但 `po_verify` 若回報 MISSING/EXTRA 時先確認是否為多行 msgid 問題
+1. **多行 msgid** — PO 標準格式把長字串跨多行續寫。`po_gen.py` 會**原樣保留 POT 的 msgid 字面**（含折行），只替換 msgstr；msgid 的折行必須與上游 POT 逐字元一致（TP 檢查器會比對字面，長續行／被重排的 msgid 會被回報）。`po_verify` 若回報 MISSING/EXTRA 時先確認是否為多行 msgid 問題
 2. `**More Colors...` vs `More Colors…`** — 三個點（ASCII `...`）與 Unicode 省略號 `…` 是不同的 msgid，兩者都要有對應翻譯
 3. `**translations 檔與 committed PO 可能 drift** — 手動編輯 PO 後 translations 檔不會自動同步。修改技能腳本後應執行 `regression_test.py`，由 drift 導致的差異須回寫到 translations 檔再重新生成 PO
 4. `**#` 開頭的 fuzzy flag** — 產生 PO 後須確認 header 的 `#, fuzzy` 已移除
