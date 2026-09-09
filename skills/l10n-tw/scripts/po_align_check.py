@@ -11,12 +11,12 @@ misjudges every line containing CJK.
 For each entry, every physical line of the msgid is compared with the
 corresponding line of the msgstr:
 
-- Option lines: msgid line has >= 2 leading spaces AND a run of >= 2 spaces
+- Option lines: msgid line has 2..8 leading spaces AND a run of >= 2 spaces
   separating the option from the description. The description's display
   column in the msgstr must equal the msgid's column. If the translated
   option is wider than the original column, exact alignment is impossible
   and a human must decide (shorten the option or move the whole block).
-- Continuation lines: msgid line has a pure indent >= 10 columns (wrapped
+- Continuation lines: msgid line has a pure indent >= 9 columns (wrapped
   description text aligned to the description column). The msgstr indent
   column must equal the msgid's.
 
@@ -38,7 +38,7 @@ import sys
 import unicodedata
 from pathlib import Path
 
-from po_verify import parse_entries, get_msgstr
+from po_verify import parse_entries, get_msgstr, decode_po
 
 
 def dwidth(s: str) -> int:
@@ -82,8 +82,8 @@ def check_po(pot_path: Path, po_path: Path) -> int:
         msgstr = get_msgstr(po_entry)
         if not msgstr:
             continue
-        m_lines = msgid.replace('\\n', '\n').split('\n')
-        s_lines = msgstr.replace('\\n', '\n').split('\n')
+        m_lines = decode_po(msgid).split('\n')
+        s_lines = msgstr.split('\n')
 
         for i, m in enumerate(m_lines):
             if '\t' in m:
@@ -97,7 +97,7 @@ def check_po(pot_path: Path, po_path: Path) -> int:
             s_indent = len(s) - len(s.lstrip(' '))
             s_col, s_opt = desc_col(s)
 
-            if m_col is not None and m_indent >= 2:
+            if m_col is not None and 2 <= m_indent < 9:
                 # msgid 選項行：譯文說明欄位必須與原文一致。
                 if s_col is None:
                     if s_indent >= 10:
@@ -115,7 +115,7 @@ def check_po(pot_path: Path, po_path: Path) -> int:
                 elif s_col != m_col:
                     issues.append(
                         f'L{i}: 對齊欄譯文={s_col} 應為 {m_col}: {s[:60]!r}')
-            elif m_indent >= 10:
+            elif m_indent >= 9:
                 # msgid 續行：譯文縮排欄位必須與原文一致。
                 if s_col is not None:
                     # 譯文換行結構不同（此處是選項行）— 無法按索引比對，跳過

@@ -30,9 +30,9 @@ def is_empty_value(val):
     if val is None:
         return True
     if isinstance(val, str):
-        return not val.strip()
+        return val == ''
     if isinstance(val, list):
-        return all(not (isinstance(v, str) and v.strip()) for v in val)
+        return all(v == '' for v in val)
     return False
 
 
