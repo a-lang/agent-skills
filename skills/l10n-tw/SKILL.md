@@ -4,7 +4,7 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "2.3"
+  version: "2.4"
   hermes:
     tags:
       - l10n
@@ -152,16 +152,26 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 ### A2. 大專案（≥ 2000 條）
 
 1. 切批：依 POT 行號範圍 `[start, end]`（1-based，含兩端）提取待翻譯條目。
+   - **先確認來源總條數**（`extract_batch.py --verify-total <N>`，或
+     `uv run python3 -c "import polib,sys;print(len([e for e in polib.pofile(sys.argv[1]) if e.msgid]))" <template.pot>`），
+     以免對總數掌握錯誤。
   ```bash
    uv run python3 skills/l10n-tw/scripts/extract_batch.py \
      <path/to/template.pot> <batch1.json> <start1> <end1>
   ```
+   > 批間行號範圍若留間隙（空白列＋下一條目首行落在縫隙），該條目會被**靜默略過**
+   > 且 `extract_batch.py` 不警告。切批後務必以 `merge_batches.py --expected-total` 核對總覆蓋率。
 2. 在每個 `batchN.json` 填入譯文：`{"msgid": "正體中文翻譯"}`。
   - 不要修改 msgid 與 XML 標籤。
-3. 合併為 translations 檔：
+  - **寫回方式**：平行翻譯代理請一律用 `write` 工具直接寫回完整 JSON
+    （`json.dump(..., ensure_ascii=False, indent=2)` + 結尾換行），**勿以共享
+    eval kernel 暫存長字面值再寫回**——會被兄弟代理覆寫共用變數而遺失內容；
+    寫回前重新讀檔確認。
+3. 合併為 translations 檔（帶上來源總條數作為覆蓋率閘門，漏條即退出碼非 0）：
   ```bash
    uv run python3 skills/l10n-tw/scripts/merge_batches.py \
-     batch1.json batch2.json ... -o template-translations.py
+     batch1.json batch2.json ... -o template-translations.py \
+     --expected-total <來源總條數>
   ```
 4. 執行通用驗證步驟。
 
@@ -491,7 +501,7 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 - [ ] **用語掃描**：`fix_terminology.py`（translations 檔或 PO 模式）輸出無「⚠️ Remaining banned terms」；「👀 Scan-only terms」殘留已逐項人工判定（合法保留或修正）
 - [ ] **完整性**：`po_verify.py` 輸出 Coverage 100%、無 untranslated、無 fuzzy、無 missing/extra
 - [ ] **格式合法**：`msgfmt -cv` 退出碼 0，無 c-format 錯誤
-- [ ] **佔位符抽查**：`%s`／`%d`／`%1` 等變數與 msgid 一一對應（數量一致，語序可調）
+- [ ] **佔位符抽查**：`%s`／`%d`／`%1` 等變數與 msgid 數量一致；位置式 `%N$letter` 的 `N` 對應 msgid 第 N 個參數且型別（letter）不變，語序可調（詳見 `references/l10n-tw-guide.md` §3.4，`po_verify.py` 會自動檢查格式旗標條目）
 - [ ] **排版抽查**：中英／中數間半形空格、全形標點、快捷鍵格式符合 `references/l10n-tw-guide.md` 3.1–3.3（抽查新翻譯，不限全部條目）
 - [ ] **CLI 對齊檢查**：`po_align_check.py` 退出碼 0（適用含 CLI 求助文字的專案；無求助文字時印「無 CLI 求助對齊行」即視為通過）
 - [ ] **TP 檔頭檢查**：來源為 Translation Project 平台專案時，依 `references/translation-project.md`「TP 品質驗收清單」逐項勾選（非 TP 專案免勾）

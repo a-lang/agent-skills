@@ -88,10 +88,161 @@ def has_fuzzy(entry: str) -> bool:
     return bool(re.search(r'^#, fuzzy\b', entry, re.MULTILINE))
 
 
+def has_format_flag(entry: str) -> bool:
+    """Check if an entry carries a positive format flag (c-format / php-format / ...).
+
+    Entries marked `no-c-format` / `no-format` (literal percents that gettext is
+    told to ignore, e.g. "93% of") are excluded from placeholder checking.
+    """
+    for line in entry.split('\n'):
+        m = re.match(r'^#,\s*(.*)$', line)
+        if m:
+            flags = m.group(1)
+            if re.search(r'\bno-(?:c-)?format\b', flags):
+                return False
+            return bool(re.search(r'\b[\w-]*format\b', flags))
+    return False
+
+
 def get_comment_lines(text: str) -> list[str]:
     """Get all non-obsolete comment lines from a PO/POT file."""
     return [l for l in text.split('\n')
             if l.startswith('#') and not l.startswith('#~')]
+
+
+# ── Format placeholder checking ─────────────────────────────────────────
+
+# Conversion letters for printf-style formats (c-format / php-format / ...)
+_FORMAT_CONV = r'[diouxXeEfFgGaAcsp]'
+
+# Matches a single format specifier: optional flags/width/precision/position/length, then a conversion.
+# Captures optional positional index (N$), length modifier, and the conversion letter.
+_FORMAT_RE = re.compile(
+    r'%'                          # literal percent
+    r'(?:(?P<pos>\d+)\$)?'        # positional index N$ (optional)
+    r'[-+ #0]*'                   # flags (note: a space is a flag, e.g. "% d")
+    r'(?:\d+|\*)?'                # width
+    r'(?:\.(?:\d+|\*))?'          # precision
+    r'(?P<length>hh|h|ll|l|L|j|z|t)?'  # length modifier (e.g. "%jd", "%td")
+    r'(?P<conv>' + _FORMAT_CONV + r')'
+)
+
+
+def scan_format_specifiers(text: str) -> tuple[list[tuple[int | None, str]], bool]:
+    """Scan a format string.
+
+    Returns (specs, advanced) where:
+      - specs = [(positional_index_or_None, conversion_letter), ...]
+      - advanced = True if the string contains a construct this checker cannot
+        reliably verify (gnulib `%<PRIuMAX>`, a length modifier such as `%ju`
+        or `%jd`, or a `%` it could not consume). Advanced strings are left for
+        `msgfmt` to judge, which is the authoritative check.
+    Escaped '%%' is skipped. Positional index is 1-based when present (N$).
+    """
+    out: list[tuple[int | None, str]] = []
+    advanced = False
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] != '%':
+            i += 1
+            continue
+        if i + 1 < n and text[i + 1] == '%':
+            i += 2
+            continue
+        if i + 1 < n and text[i + 1] == '<':
+            advanced = True  # gnulib abstract placeholder e.g. %<PRIuMAX>
+            i += 1
+            continue
+        m = _FORMAT_RE.match(text, i)
+        if not m:
+            advanced = True  # unconsumable '%' (e.g. %m, or a literal we can't parse)
+            i += 1
+            continue
+        pos = int(m.group('pos')) if m.group('pos') else None
+        if m.group('length'):
+            advanced = True  # length-modified specifier — defer to msgfmt
+        out.append((pos, m.group('conv')))
+        i = m.end()
+    return out, advanced
+
+
+def parse_format_specifiers(text: str) -> list[tuple[int | None, str]]:
+    """Return [(positional_index_or_None, conversion_letter), ...] (ignores advanced flag)."""
+    return scan_format_specifiers(text)[0]
+
+
+def _is_positional(specs: list[tuple[int | None, str]]) -> bool:
+    """True if any specifier carries a positional index (N$)."""
+    return any(p is not None for p, _ in specs)
+
+
+def check_placeholders(msgid: str, msgstr: str) -> list[str]:
+    """Compare msgid vs msgstr format specifiers. Returns a list of issues.
+
+    Rules:
+      - Equal specifier count.
+      - Within a single string, positional and non-positional must not mix.
+      - msgid non-positional + msgstr positional: each %N$letter must match
+        the conversion of the Nth msgid specifier (index refers to msgid args).
+      - msgid positional: msgstr must be positional too, with matching index
+        and conversion per position.
+      - msgid non-positional + msgstr non-positional: conversions must match
+        position-by-position (same order).
+    """
+    issues: list[str] = []
+    id_specs, id_advanced = scan_format_specifiers(msgid)
+    str_specs, str_advanced = scan_format_specifiers(msgstr)
+
+    # Constructs we can't reliably verify (length modifiers, gnulib %<...>, or
+    # unconsumable '%') are left to msgfmt — the authoritative check. Skipping
+    # them avoids false positives on valid PO files.
+    if id_advanced or str_advanced:
+        return []
+
+    if len(id_specs) != len(str_specs):
+        issues.append(
+            f"佔位符數量不一致：msgid {len(id_specs)} 個，msgstr {len(str_specs)} 個")
+
+    if _is_positional(id_specs) and any(p is None for p, _ in id_specs):
+        issues.append("msgid 混用位置式與非位置式佔位符")
+    if _is_positional(str_specs) and any(p is None for p, _ in str_specs):
+        issues.append("msgstr 混用位置式與非位置式佔位符")
+
+    if not id_specs and not str_specs:
+        return issues
+
+    if _is_positional(id_specs):
+        # msgid positional → msgstr must be positional with matching idx+type.
+        if not _is_positional(str_specs):
+            issues.append("msgid 使用位置式但 msgstr 未使用位置式")
+        else:
+            for i, ((ip, ic), (sp, sc)) in enumerate(zip(id_specs, str_specs), start=1):
+                if ip != sp:
+                    issues.append(f"位置式索引第 {i} 個不一致：msgid %{ip}$ 對 msgstr %{sp}$")
+                elif ic != sc:
+                    issues.append(f"位置式型別第 {i} 個不一致：msgid %{ip}${ic} 對 msgstr %{sp}${sc}")
+    elif _is_positional(str_specs):
+        # msgid non-positional, msgstr positional: %N$letter refers to the
+        # Nth msgid specifier → conversion must match that argument.
+        for i, (sp, sc) in enumerate(str_specs, start=1):
+            if sp is None:
+                continue
+            if sp < 1 or sp > len(id_specs):
+                issues.append(f"msgstr 位置式索引 %{sp}$ 超出 msgid 參數範圍")
+                continue
+            ic = id_specs[sp - 1][1]
+            if ic != sc:
+                issues.append(
+                    f"位置式型別不一致：msgstr %{sp}${sc} 對應 msgid 第 {sp} 個參數為 %{ic}")
+    else:
+        # Both non-positional: conversions must match position-by-position.
+        for i, ((_, ic), (_, sc)) in enumerate(zip(id_specs, str_specs), start=1):
+            if ic != sc:
+                issues.append(
+                    f"非位置式型別第 {i} 個不一致：msgid %{ic} 對 msgstr %{sc}")
+
+    return issues
 
 
 def check_eof_canonicality(data: bytes) -> list[str]:
@@ -211,6 +362,30 @@ def verify(pot_path: str, po_path: str, check_comments: bool = False) -> int:
 
     if not untranslated_list and not fuzzy_list:
         print("✅ All entries translated and no fuzzy markers")
+
+    # Format placeholder check (only entries carrying a format flag)
+    print()
+    placeholder_issues: list[tuple[str, str]] = []
+    for msgid, entry in po_entries:
+        if not msgid:
+            continue
+        if not has_format_flag(entry):
+            continue
+        msgstr = get_msgstr(entry)
+        if not msgstr:
+            continue
+        for issue in check_placeholders(msgid, msgstr):
+            placeholder_issues.append((issue, msgid))
+
+    if placeholder_issues:
+        issues += 1
+        print(f"❌ Format placeholder issues ({len(placeholder_issues)}):")
+        for issue, msgid in placeholder_issues[:10]:
+            print(f'  - {issue}\n    "{msgid[:100]}"')
+        if len(placeholder_issues) > 10:
+            print(f"  ... and {len(placeholder_issues) - 10} more")
+    else:
+        print("✅ Format placeholders match between msgid and msgstr")
 
     # Comment structure check
     if check_comments:

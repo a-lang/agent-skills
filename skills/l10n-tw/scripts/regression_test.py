@@ -18,11 +18,12 @@ Usage:
     uv run python3 skills/l10n-tw/scripts/regression_test.py --root ./some-dir
 """
 import argparse
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-from po_verify import check_eof_canonicality
+from po_verify import check_eof_canonicality, check_placeholders
 
 # Directory containing this script
 SCRIPTS = Path(__file__).resolve().parent
@@ -111,6 +112,26 @@ def self_check_eof_checker() -> bool:
     return ok
 
 
+def self_check_placeholder_checker() -> bool:
+    """Sanity-check check_placeholders against known msgid/msgstr samples."""
+    cases = [
+        # (msgid, msgstr, issues_expected)
+        ("expire in %d days on %s", "將於 %2$s 到期（尚有 %1$d 天）", False),
+        ("expire in %d days on %s", "將於 %1$s 到期（尚有 %2$d 天）", True),
+        ("%d articles match rule %d", "符合規則 %2$d 的文章有 %1$d 個", False),
+        ("%d days", "%s 天", True),
+        ("%s and %s", "A 和 B", True),
+    ]
+    ok = True
+    for msgid, msgstr, expected in cases:
+        issues = check_placeholders(msgid, msgstr)
+        got = bool(issues)
+        if got != expected:
+            ok = False
+            print(f"  ❌ placeholder self-check failed: {msgid!r} / {msgstr!r}: {issues}")
+    return ok
+
+
 def run(cmd, **kw):
     print(f"$ {' '.join(str(c) for c in cmd)}")
     r = subprocess.run(cmd, capture_output=True, text=True, **kw)
@@ -140,10 +161,23 @@ def main():
         default="zh_TW",
         help="Language code for generated PO files (default: zh_TW)",
     )
+    parser.add_argument(
+        "--init-committed",
+        type=Path,
+        default=None,
+        metavar="PO",
+        help="Copy this PO as the committed baseline for any project that has no "
+             "committed PO, then run the comparison against it. Lets brand-new "
+             "projects run a real (non-SKIP) regression.",
+    )
     args = parser.parse_args()
 
     if not self_check_eof_checker():
         print("❌ check_eof_canonicality self-check failed — aborting regression run")
+        return 1
+
+    if not self_check_placeholder_checker():
+        print("❌ check_placeholders self-check failed — aborting regression run")
         return 1
 
     root = args.root.resolve()
@@ -174,9 +208,23 @@ def main():
         print('='*70)
 
         if committed is None:
-            print(f"  ⚠️  committed PO not found in {project_dir}")
-            results.append((project_dir.name, "SKIP", "committed PO missing"))
-            continue
+            if args.init_committed is not None and args.init_committed.exists():
+                committed = project_dir / f"{pot_file.stem}-{args.language}.po"
+                try:
+                    shutil.copyfile(args.init_committed, committed)
+                except OSError as ex:
+                    print(f"  ❌ cannot copy baseline to {committed}: {ex}")
+                    results.append((project_dir.name, "FAIL", "init-committed copy failed"))
+                    continue
+                print(f"  ℹ️  initialized committed baseline: {committed}")
+            else:
+                print(f"  ⚠️  committed PO not found in {project_dir}")
+                print("  ⚠️  SKIP is NOT a pass — no baseline comparison was run.")
+                print("      Establish a baseline by copying the generated PO, e.g.:")
+                print(f'      cp <generated.po> {project_dir}/<potstem>-{args.language}.po')
+                print("      or pass --init-committed <po> to auto-initialize.")
+                results.append((project_dir.name, "SKIP", "committed PO missing (未驗證)"))
+                continue
 
         gen_po = out_dir / f"{committed.stem}.regen.po"
 
@@ -275,6 +323,10 @@ def main():
     print(f"\n{'='*70}")
     print("  REGRESSION TEST SUMMARY")
     print('='*70)
+    skips = [r for r in results if r[1] == "SKIP"]
+    if skips:
+        print("  ⚠️  NOTE: SKIP entries mean no baseline comparison ran — the")
+        print("      project is NOT regression-verified (SKIP ≠ OK).")
     for name, status, detail in results:
         icon = "✅" if status == "OK" else "❌" if status == "FAIL" else "⚠️ "
         print(f"  {icon} [{status}] {name}: {detail}")

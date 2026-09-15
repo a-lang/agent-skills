@@ -127,6 +127,12 @@ def main():
                         help='For .po input: only untranslated entries (no prompt)')
     parser.add_argument('--all', action='store_true',
                         help='For .po input: all entries (no prompt)')
+    parser.add_argument('--verify-total', type=int, default=None, metavar='N',
+                        help='Assert the source holds exactly N translatable entries '
+                             '(header excluded). Exits non-zero if the source count '
+                             'differs, so you catch a wrong stated total before '
+                             'slicing. For cross-batch coverage use '
+                             'merge_batches.py --expected-total.')
     args = parser.parse_args()
 
     if args.start_line < 1 or args.end_line < args.start_line:
@@ -187,8 +193,16 @@ def main():
         f.write('\n')
 
     mode = "untranslated" if untranslated_only else "all"
-    print(f"✅ Extracted {matched} entries ({mode}) from {args.input}")
+    print(f"✅ Extracted {matched} entries (mode={mode}) from {args.input}")
     print(f"   Line range: [{args.start_line}, {args.end_line}] -> {args.out}")
+
+    if args.verify_total is not None:
+        total = sum(1 for msgid, _, _ in entries if msgid)
+        if total != args.verify_total:
+            print(f"❌ --verify-total mismatch: source holds {total} translatable "
+                  f"entries, expected {args.verify_total}.", file=sys.stderr)
+            sys.exit(1)
+        print(f"   verify-total: source confirmed {total} translatable entries")
 
 
 if __name__ == '__main__':

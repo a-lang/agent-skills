@@ -118,6 +118,29 @@ msgid "%d articles match rule %d"
 msgstr "符合規則 %2$d 的文章有 %1$d 個"
 ```
 
+**位置式 `%N$letter` 的正確語意：**
+
+- `N` 是 **msgid 中第 N 個參數的序號**（1-based），不是「在輸出中排第幾個」。
+- `letter`（型別字母，如 `d`、`s`）**必須與 msgid 第 N 個參數相同**，重排時是把整個 `%N$letter` token 搬到新位置，**絕不能改字母或重新編號**。
+- `msgfmt -cv` 會依此檢查：`%1$s` 指涉 msgid 第 1 個參數並宣稱它是字串；若 msgid 第 1 個參數其實是 `%d`，msgfmt 就回報「msgid 中的格式規範和傳給第 N 個參數的 msgstr 不同」。
+
+**混合型別的正誤對照**（msgid 為 `%d` 天數 + `%s` 日期，想把日期提前）：
+
+```po
+msgid "The key will expire in %d days on %s"
+```
+
+- 正確（搬移整個 token，序號與型別不變）：
+```po
+msgstr "金鑰將於 %2$s 到期（尚有 %1$d 天）"
+```
+- 錯誤（`%1$` 指到 msgid 第 1 個參數 `%d`，卻標成 `%s`）：
+```po
+msgstr "金鑰將於 %1$s 到期（尚有 %2$d 天）"
+```
+
+> msgid 未使用位置式（純 `%s`／`%d`）時，譯文仍可用位置式重排，但每個 `%N$letter` 的型別必須與 msgid 第 N 個參數一致。若無法確定對應關係，維持原順序最安全。最終以 `msgfmt -cv` 的結果為準。
+
 **進度條常見格式：**
 ```
 %1 of %2, %3 remaining → %1 / %2，剩餘 %3 個

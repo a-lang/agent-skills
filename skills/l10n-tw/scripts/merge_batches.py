@@ -67,6 +67,11 @@ Examples:
                         help='Output translations.py path')
     parser.add_argument('--override', action='store_true',
                         help='Allow later batch to override earlier non-empty value')
+    parser.add_argument('--expected-total', type=int, default=None, metavar='N',
+                        help='Expected total translatable entries across all batches '
+                             '(header excluded). Exits non-zero if the merged count of '
+                             'non-empty msgids differs — catches line-range gaps that '
+                             'silently skipped entries between batches.')
     args = parser.parse_args()
 
     translations: dict[str, str | list[str]] = {}
@@ -113,9 +118,17 @@ Examples:
 
     write_translations_py(translations, args.output)
 
+    if args.expected_total is not None and len(translations) != args.expected_total:
+        print(f"❌ --expected-total mismatch: merged {len(translations)} non-empty "
+              f"msgids, expected {args.expected_total} — a line-range gap likely "
+              f"silently skipped entries between batches.", file=sys.stderr)
+        sys.exit(1)
+
     print(f"✅ translations.py: {args.output}")
     print(f"   Merged {total_entries} entries from {total_files} files")
     print(f"   Written {len(translations)} non-empty entries")
+    if args.expected_total is not None:
+        print(f"   expected-total: {len(translations)}/{args.expected_total} entries OK")
 
 
 if __name__ == '__main__':
