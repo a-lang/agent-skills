@@ -49,6 +49,7 @@
 | Binding | 繫結/綁定 | 可參考[此討論](https://t.me/l10n_tw/34803)，依語境自行斟酌。 |
 | Bitmap | 點陣圖 | 不翻「位圖」 |
 | Bitrate | 位元率 | 不翻「碼率/比特率」、亦作：位元速率 |
+| Bless | 引導 | 技術文件不翻「祝福」 |
 | Block | 封鎖 | 留意「屏蔽」、不翻「和諧（河蟹）」、亦作：阻擋 / 阻塞、(non-)blocking 常譯作 (非) 阻塞 |
 | Broadband | 寬頻 | 不翻「寬帶」 |
 | Bubble Sort | 泡沫排序 | 不翻「冒泡排序」 |
@@ -65,6 +66,7 @@
 | Client | 用戶端 | 不翻「客戶端」 |
 | close | 關閉 |  |
 | Column | 行 |  |
+| Command | 命令 | |
 | Command Line | 命令列 | 不翻「命令行」 |
 | Command Line Interface | 命令列 | 不翻「命令行界面」、英文常縮寫為 CLI |
 | Command Prompt | 命令提示字元 | 不翻「命令提示符」、Windows 早期的命令介面的殼層 (shell)<br>參見[微軟語言入口網站](https://www.microsoft.com/zh-tw/language/Search?&searchTerm=command%20prompt&langID=124&Source=true&productid=undefined) |
@@ -124,7 +126,7 @@
 | HDD | 硬碟 | 全稱為 Hard Disk Drive |
 | Header file | 標頭檔 | 不翻「頭文件」 |
 | Heap | 堆積 | 一種資料結構 |
-| Highlight | 凸顯標示 | 留意「高亮」、亦作：醒目標示 / 色彩突顯 / 標明 |
+| Highlight | 標明 | 留意「高亮」、亦作：醒目標示 / 色彩突顯 / 標明 |
 | Hover | 暫留 | 留意「懸停」、指將滑鼠指標暫時停留於畫面某處上 |
 | Icon | 圖示 | 不翻「圖標」、香港亦稱呼爲「圖標」 |
 | image | 圖片 |  |
@@ -138,7 +140,7 @@
 | Internet | 網際網路 | 香港亦稱呼為「互聯網」 |
 | Interpreter | 直譯器 | 不翻「解釋器」 |
 | Introduce | 介紹 | 留意「推介」 |
-| Kernel | （作業系統）核心 | 不翻「內核」、建議不省略作業系統部份，避免造成閱聽者理解困擾 |
+| Kernel | 系統核心 | 不翻「內核」、建議不省略作業系統部份，避免造成閱聽者理解困擾 |
 | Keyring | 鑰匙圈 | 對應「keyring」「key ring」不翻「金鑰環」 |
 | Kit | 套件 | 不翻「工具包」 |
 | LAN | LAN | 不翻「區域網」、亦作：區域網路、全稱為 Local Area Network |
@@ -176,6 +178,7 @@
 | Plugin | 外掛程式 | 不翻「插件」、Firefox 正體中文版使用此稱呼<br>有鑑於外掛程式常使人聯想為遊戲的作弊程式，若有更佳的稱呼，歡迎補充。 |
 | Pointer | 指標 | 留意「指針」、C 語言中用來存放記憶體位址的一種資料型別 |
 | Polymorphism | 多型 | 不翻「多態」 |
+| Pool | 集池 |  |
 | Port | 連接埠 | 亦作：通訊埠、(a.) 實體的插孔或連接處<br>(b.) [網路通訊名詞](https://terms.naer.edu.tw/detail/1284277/) |
 | Postfix | 尾碼 | 留意「後綴」 |
 | Power Adapter | 電源供應器 | 不翻「電源適配器」、亦作：充電器、[adapter 與 charger 差異探討](https://www.etechnog.com/2019/06/difference-between-charger-adapter.html#:~:text=The%20charger%20is%20specially%20designed%20to%20charge%20a%20device%20such,power%20supply%20to%20a%20device.) |
@@ -246,6 +249,7 @@
 | uninstall | 解除安裝 | 留意「卸載」 |
 | Union | 聯集（數學） | 不翻「併集（數學）/聯合體（程式）」 |
 | user | 使用者 | 不翻「用戶」 |
+| Verbose | 詳盡 | 詳細；詳盡 |
 | Video | 影片 | 不翻「視頻」、亦作：視訊 |
 | Volume (disk) | 磁碟區（微軟） | 留意「卷（微軟）/宗卷（蘋果）」、亦作：卷宗（蘋果） |
 | Wallpaper | 桌布 | 不翻「壁紙/牆紙」 |
