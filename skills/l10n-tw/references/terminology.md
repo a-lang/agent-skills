@@ -33,6 +33,7 @@
 | Application | 應用程式 | 留意「應用」、亦作：應用（軟體） |
 | apply | 套用 |  |
 | Array | 陣列 | 不翻「數組」 |
+| Archive | 封存 | 亦作『封存檔』|
 | Assembler | 組譯器 | 不翻「彙編器」 |
 | Assembly language | 組合語言 | 不翻「彙編語言」 |
 | Asynchronous Programming | 非同步程式設計 | 不翻「異步編程」、例如 JavaScript 中的 `async`, `await` |
