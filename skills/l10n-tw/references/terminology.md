@@ -144,7 +144,7 @@
 | Kernel | 系統核心 | 不翻「內核」、建議不省略作業系統部份，避免造成閱聽者理解困擾 |
 | Keyring | 鑰匙圈 | 對應「keyring」「key ring」不翻「金鑰環」 |
 | Kit | 套件 | 不翻「工具包」 |
-| LAN | LAN | 不翻「區域網」、亦作：區域網路、全稱為 Local Area Network |
+| LAN | LAN | 區域網路、全稱為 Local Area Network |
 | Library | 函式庫 | 亦作：程式庫 |
 | Line | 列 | 直行橫列；對應「line」「lines」留意「行」 |
 | Link | 連結 | 亦作：鏈結、Firefox 正體中文版沿襲 Netscape 用詞譯作「鏈結」。<br>強調相互結合的意境時，譯作「[連結](https://dict.revised.moe.edu.tw/dictView.jsp?ID=64001)」，例如「動態連結函式庫」(dynamic-link library)，而強調資料因結合而呈現[鏈狀](https://dict.revised.moe.edu.tw/dictView.jsp?ID=3626)樣貌，用「鏈結」，如鏈結串列 (linked list)。 |

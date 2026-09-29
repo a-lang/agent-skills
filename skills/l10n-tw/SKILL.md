@@ -4,7 +4,7 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "2.6"
+  version: "2.7"
   hermes:
     tags:
       - l10n
@@ -63,6 +63,7 @@ l10n-tw/
 > 須與來源 POT 或 PO 位於同一層目錄。
 >
 > **來源僅 repo URL**（本地無 PO/POT）：clone 與翻譯工作目錄**分離**，避免污染 clone repo。
+>
 > - clone／fork 至暫存工作區 `$TMPDIR/l10n-tw/<project>/`（本環境慣例 `/tmp/opencode/l10n-tw/`），或使用者指定目錄；**不得** clone 進技能目錄或目前所在專案 repo 內部
 > - 於 clone 外建立姊妹工作目錄 `<project>-work/`，將來源 POT／PO 複製至其中；`<potstem>-translations.py`、批次 JSON、生成的 PO 等全部產出留在工作目錄，不寫入 clone
 > - 交付時才把最終 PO（與 LINGUAS 修改）從工作目錄複製回 clone 對應位置，再進行 git 操作
@@ -251,6 +252,8 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 
 > 判斷「工具不適用」前先確認：例如 PO 直接路徑沒有 POT，**不是**跳過 `po_verify.py` 的理由，
 > 而是用 `po_to_pot.py` 萃取出 POT 再驗證。
+>
+> 回歸測試僅在技能腳本有修改時才有需要執行。
 
 ### 1. 用語修正
 
@@ -491,9 +494,9 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 
 ### Phase 3 — 生成與驗證
 
-7. 執行「通用驗證步驟」：用語修正 → `po_gen.py` → `po_verify.py` + `msgfmt` → `po_align_check.py` → `regression_test.py`
+7. 執行「通用驗證步驟」：用語修正 → `po_gen.py` → `po_verify.py` + `msgfmt` → `po_align_check.py`（`regression_test.py` 僅在技能腳本有修改時才執行）
   - `msgfmt` 驗證用參數：`-o /dev/null`，避免產生暫存檔 `messages.mo`
-  - **完成標準：** `po_verify.py` 與 `msgfmt` 皆退出碼 0，且回歸測試所有專案 `[OK]`
+  - **完成標準：** `po_verify.py` 與 `msgfmt` 皆退出碼 0；技能腳本有修改時，回歸測試所有專案 `[OK]`
 
 **[GATE] 交付前品質自檢清單** — 進入 Phase 4 前逐項檢查，**每一項都要展示檢查輸出證據**
 （命令輸出／掃描報告），不得僅口頭宣稱「已檢查」：
