@@ -33,7 +33,7 @@
 
 - `{PACKAGE-NAME}` 置換成專案名稱
 - `{FIRST AUTHOR <EMAIL@ADDRESS>}` 判定方式：
-  1. 填入翻譯者的名稱與郵件地址（翻譯者身份依 `SKILL.md`「翻譯者身份（Last-Translator）」解析：`--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `skills/l10n-tw/.env` 設定檔）
+  1. 填入翻譯者的名稱與郵件地址（翻譯者身份依 `SKILL.md`「翻譯者身份（Last-Translator）」解析：`--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `{project-dir}/translator.txt` 設定檔）
   2. 保留既有作者行（若有，如情境 B 沿用既有翻譯時），在其後依序新增目前翻譯者
 - 年份 `{YEAR}` 以當前年份為準（本文件範例為 2026）
 - 四行註解後接一個空的 `#` 行，再接 `msgid ""`

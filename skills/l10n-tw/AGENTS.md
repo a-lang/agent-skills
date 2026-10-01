@@ -13,44 +13,44 @@ l10n-tw 技能的開發規則與指令。
 
 ```bash
 # 來源檔預檢：翻譯前先驗證 POT／PO 格式（編碼/檔頭/fuzzy/重複/msgfmt）
-uv run python3 scripts/po_preflight.py <path/to/source.pot_or_po>
+uv run python3 scripts/po_preflight.py {path/to/source.pot_or_po}
 
-# 生成 PO：POT + <potstem>-translations.py → PO
-uv run python3 scripts/po_gen.py <path/to/template.pot> -t <path/to/template-translations.py> -o <path/to/output-zh_TW.po>
+# 生成 PO：POT + {potstem}-translations.py → PO
+uv run python3 scripts/po_gen.py {path/to/template.pot} -t {path/to/template-translations.py} -o {path/to/output-zh_TW.po}
 
 # 驗證：檢查是否 100% 覆蓋、無模糊標記、註解保留
-uv run python3 scripts/po_verify.py <path/to/template.pot> <path/to/output.po> --comments
+uv run python3 scripts/po_verify.py {path/to/template.pot} {path/to/output.po} --comments
 
 # CLI 求助文字對齊檢查（顯示寬度，CJK=2 欄；無 CLI 求助文字時印通過訊息，退出碼 0）
-uv run python3 scripts/po_align_check.py <path/to/template.pot> <path/to/output.po>
+uv run python3 scripts/po_align_check.py {path/to/template.pot} {path/to/output.po}
 
 # 回歸測試：重新生成所有專案並比對已提交的 PO（在修改腳本後執行；--root 必填，執行前會要求確認，非互動環境加 --yes）
-uv run python3 scripts/regression_test.py --root <projects-dir>
+uv run python3 scripts/regression_test.py --root {projects-dir}
 
-# 從既有繁體中文 PO 抽出 <potstem>-translations.py
-uv run python3 scripts/po_to_translations.py <path/to/old-zh_TW.po> -o <path/to/<potstem>-translations.py>
+# 從既有繁體中文 PO 抽出 {potstem}-translations.py
+uv run python3 scripts/po_to_translations.py {path/to/old-zh_TW.po} -o {potstem}-translations.py
 
 # 合併多個批次 JSON 為 translations 檔
-uv run python3 scripts/merge_batches.py <batch1.json> <batch2.json> ... -o <path/to/<potstem>-translations.py>
+uv run python3 scripts/merge_batches.py {batch1.json} {batch2.json} ... -o {potstem}-translations.py
 
 # 依 references/terminology.md 統一用語（輸入為 .po 檔時自動走 PO 模式掃描 msgstr）
 # 「不翻「X」」自動替換；「留意「X」」僅掃描不替換（語境敏感，人工判定，見 SKILL.md）
 # 英文錨定：`對應「anchor」` 前的標記只在 msgid 命中錨定詞（詞界、大小寫不敏感）時作用，
 # 如 對應「line」「lines」留意「行」（line 語境應譯「列」，合法複詞如換行保留）
-uv run python3 scripts/fix_terminology.py <path/to/translations.py_or_po>
+uv run python3 scripts/fix_terminology.py {path/to/translations.py_or_po}
 ```
 
 - `po_verify.py`：退出碼 0 = 沒問題，1 = 有問題
 - `po_preflight.py`：退出碼 0 = 來源檔乾淨，1 = 發現問題（軟停止，回報使用者決定修正或繼續）
 - `po_gen.py` 接受 `.py`（匯出 `TRANSLATIONS` dict）或 `.json`（透過 `-j`）作為翻譯來源
 - 腳本使用 `python3`，無需手動啟用 venv —— `uv run` 自動處理
-- 回歸測試自動探索 (POT, translations 檔) 專案對：一律 `<potstem>-translations.py`；既有以預設 `translations.py` 命名的專案仍向後相容（單一未配對 POT 的目錄會回退使用）
+- 回歸測試自動探索 (POT, translations 檔) 專案對：一律 `{potstem}-translations.py`；既有以預設 `translations.py` 命名的專案仍向後相容（單一未配對 POT 的目錄會回退使用）
 
 ## 專案目錄慣例
 
-專案目錄是動態的，以要翻譯的 PO 或 POT 檔所在目錄為主，不綁定技能目錄下的固定位置。所有非暫存產出檔案（`<potstem>-translations.py`、生成的 PO）須與來源 POT 或 PO 位於同一層目錄。若專案另有指定工作目錄，以指定目錄為優先。
+專案目錄是動態的，以要翻譯的 PO 或 POT 檔所在目錄為主，不綁定技能目錄下的固定位置。所有非暫存產出檔案（`{potstem}-translations.py`、生成的 PO）須與來源 POT 或 PO 位於同一層目錄。若專案另有指定工作目錄，以指定目錄為優先。
 
-來源僅 repo URL（本地無 PO/POT）時，clone 與翻譯工作目錄分離：clone／fork 至暫存工作區 `$TMPDIR/l10n-tw/<project>/`（本環境慣例 `/tmp/opencode/l10n-tw/`），不得 clone 進技能目錄或目前所在專案 repo 內部；翻譯產出全部留在 clone 外的姊妹工作目錄 `<project>-work/`，交付時才回填 clone。
+來源僅 repo URL（本地無 PO/POT）時，clone 與翻譯工作目錄分離：clone／fork 至暫存工作區 `$TMPDIR/l10n-tw/{project}/`（本環境慣例 `/tmp/opencode/l10n-tw/`），不得 clone 進技能目錄或目前所在專案 repo 內部；翻譯產出全部留在 clone 外的姊妹工作目錄 `{project}-work/`，交付時才回填 clone。
 
 ## 閘門（審查點）——依 SKILL.md
 

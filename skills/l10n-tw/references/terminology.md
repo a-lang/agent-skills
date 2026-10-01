@@ -216,7 +216,7 @@
 | Serial Port | 序列埠 | 不翻「串行埠/串行/串口」 |
 | Server | 伺服器 |  |
 | setting(s) | 設定 | 不翻「設置」 |
-| shortcut | 捷徑 | 不翻「快捷方式」 |
+| shortcut | 快捷鍵 | 不翻「快捷方式」 |
 | Sign in | 登入 | 留意「登錄」 |
 | Sign out | 登出 | 留意「註銷」、不翻「退出登錄」 |
 | Sign up | 註冊 | |
@@ -254,7 +254,7 @@
 | Video | 影片 | 不翻「視頻」、亦作：視訊 |
 | Volume (disk) | 磁碟區（微軟） | 留意「卷（微軟）/宗卷（蘋果）」、亦作：卷宗（蘋果） |
 | Wallpaper | 桌布 | 不翻「壁紙/牆紙」 |
-| WAN | WAN | 不翻「廣域網」、亦作：廣域網路、全稱為 Wide Area Network |
+| WAN | WAN | 亦作：廣域網路、全稱為 Wide Area Network |
 | Wildcard character | 萬用字元 | 不翻「通配符」 |
 | Window | 視窗 | 不翻「窗口」 |
 | Word | 字組 | 針對計算機結構的用語 |

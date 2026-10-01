@@ -4,7 +4,7 @@ description: 將開源專案的 PO/POT 翻譯並驗證成正體中文（zh-TW）
 compatibility: Requires uv (with polib), gettext (msgfmt), git, and optionally the gh CLI; needs network access for git operations.
 metadata:
   author: l10n-tw
-  version: "2.7"
+  version: "2.8"
   hermes:
     tags:
       - l10n
@@ -44,38 +44,38 @@ l10n-tw/
 │   ├── gettext-tools.md            # gettext 工具組參考
 │   └── translation-project.md      # TP 平台專案品質驗收規範（來源為 TP 時必讀）
 ├── scripts/
-│   ├── po_gen.py                     # POT + <potstem>-translations.py → PO
+│   ├── po_gen.py                     # POT + {potstem}-translations.py → PO
 │   ├── po_verify.py                  # POT ↔ PO 驗證比對
 │   ├── po_align_check.py             # CLI 求助文字對齊檢查（顯示寬度）
 │   ├── po_preflight.py               # 來源檔預檢（編碼/檔頭/fuzzy/重複）
 │   ├── po_to_pot.py                # 任意 PO → POT（萃取模板）
-│   ├── po_to_translations.py       # PO → <potstem>-translations.py（保留舊譯文）
+│   ├── po_to_translations.py       # PO → {potstem}-translations.py（保留舊譯文）
 │   ├── fix_terminology.py          # 依 references/terminology.md 修正 translations 檔（translations.py 或 .po）
 │   ├── extract_batch.py            # 批次翻譯：PO/POT → 待翻譯 JSON
-│   ├── merge_batches.py            # 批次 JSON → <potstem>-translations.py
+│   ├── merge_batches.py            # 批次 JSON → {potstem}-translations.py
 │   ├── apply_translations.py       # 批次 JSON → 直接套用至 PO（情境 D）
 │   └── regression_test.py          # 回歸測試
 └── ...                             # 專案目錄動態，位於 PO/POT 所在目錄
 ```
 
 > **目錄約定**：專案目錄是**動態**的，以要翻譯的 PO 或 POT 檔所在目錄為主，不綁定
-> `skills/l10n-tw/` 下的固定位置。所有非暫存產出檔案（`<potstem>-translations.py`、生成的 PO）
+> `skills/l10n-tw/` 下的固定位置。所有非暫存產出檔案（`{potstem}-translations.py`、生成的 PO）
 > 須與來源 POT 或 PO 位於同一層目錄。
 >
 > **來源僅 repo URL**（本地無 PO/POT）：clone 與翻譯工作目錄**分離**，避免污染 clone repo。
 >
-> - clone／fork 至暫存工作區 `$TMPDIR/l10n-tw/<project>/`（本環境慣例 `/tmp/opencode/l10n-tw/`），或使用者指定目錄；**不得** clone 進技能目錄或目前所在專案 repo 內部
-> - 於 clone 外建立姊妹工作目錄 `<project>-work/`，將來源 POT／PO 複製至其中；`<potstem>-translations.py`、批次 JSON、生成的 PO 等全部產出留在工作目錄，不寫入 clone
+> - clone／fork 至暫存工作區 `$TMPDIR/l10n-tw/{project}/`（本環境慣例 `/tmp/opencode/l10n-tw/`），或使用者指定目錄；**不得** clone 進技能目錄或目前所在專案 repo 內部
+> - 於 clone 外建立姊妹工作目錄 `{project}-work/`，將來源 POT／PO 複製至其中；`{potstem}-translations.py`、批次 JSON、生成的 PO 等全部產出留在工作目錄，不寫入 clone
 > - 交付時才把最終 PO（與 LINGUAS 修改）從工作目錄複製回 clone 對應位置，再進行 git 操作
 >
-> **翻譯檔命名**：一律使用 `<potstem>-translations.py` 配對 `<potstem>.pot`
+> **翻譯檔命名**：一律使用 `{potstem}-translations.py` 配對 `{potstem}.pot`
 > （potstem = POT 檔名主體，如 `template.pot` → `template-translations.py`）。
 > `regression_test.py` 依此規則探索；既有以預設 `translations.py` 命名的舊專案
 > 仍向後相容（單一未配對 POT 的目錄會回退使用）。
 
 ## 核心概念
 
-1. **所有專案的最終產出是 PO 檔**，但中間的**單一真相來源是 `<potstem>-translations.py`**（下稱 translations 檔）。
+1. **所有專案的最終產出是 PO 檔**，但中間的**單一真相來源是 `{potstem}-translations.py`**（下稱 translations 檔）。
 2. **POT 或 PO 只是起點**：讀取後都轉成 translations 檔，再統一產出 PO。
 3. **無論來源格式或專案大小**，最後都走 `fix_terminology.py` → `po_gen.py` → `po_verify.py` + `msgfmt`。
 
@@ -89,18 +89,18 @@ l10n-tw/
 
 | 來源格式 | 來源語言 | 規模  | 既有翻譯 | 流程                                                                                                                               |
 | ---- | ---- | --- | ---- | -------------------------------------------------------------------------------------------------------------------------------- |
-| POT  | —    | 小   | 無    | 手建 `<potstem>-translations.py` → `fix_terminology.py` → `po_gen.py` → `po_verify.py`                                                              |
+| POT  | —    | 小   | 無    | 手建 `{potstem}-translations.py` → `fix_terminology.py` → `po_gen.py` → `po_verify.py`                                                              |
 | POT  | —    | 大   | 無    | `extract_batch.py` → 填 `batchN.json` → `merge_batches.py` → `fix_terminology.py` → `po_gen.py` → `po_verify.py`                  |
 | PO   | 繁體中文 | 小   | 保留   | `po_to_translations.py` → `fix_terminology.py` → 手動補洞 → `po_gen.py` → `po_verify.py`                                             |
 | PO   | 繁體中文 | 小   | 不保留  | 同 POT 小專案                                                                                                                        |
 | PO   | 繁體中文 | 大   | 保留   | `extract_batch.py --all` → 審修 `batchN.json` → `merge_batches.py` → `fix_terminology.py` → `po_gen.py` → `po_verify.py`           |
 | PO   | 繁體中文 | 大   | 不保留  | 同 POT 大專案                                                                                                                        |
-| PO   | 其他語言 | 小   | 不保留  | `po_to_pot.py` → 手建 `<potstem>-translations.py` → `fix_terminology.py` → `po_gen.py` → `po_verify.py`                                    |
+| PO   | 其他語言 | 小   | 不保留  | `po_to_pot.py` → 手建 `{potstem}-translations.py` → `fix_terminology.py` → `po_gen.py` → `po_verify.py`                                    |
 | PO   | 其他語言 | 大   | 不保留  | `po_to_pot.py` → `extract_batch.py` → 填 `batchN.json` → `merge_batches.py` → `fix_terminology.py` → `po_gen.py` → `po_verify.py` |
 | PO   | 繁體中文 | 任一   | 保留   | 局部補翻：`extract_batch.py --all` → 審修 `batchN.json` → `apply_translations.py` → 情境 D 驗證 SOP                                    |
 
 
-**規模門檻**：建議 **2000 條 msgid** 以下使用單一 `<potstem>-translations.py`；超過則考慮批次流程。
+**規模門檻**：建議 **2000 條 msgid** 以下使用單一 `{potstem}-translations.py`；超過則考慮批次流程。
 （實際上 2000 條以下仍可用單一檔案管理，視編輯便利性調整。）
 
 ---
@@ -137,7 +137,7 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 ### A1. 小專案（&lt; 2000 條）
 
 1. 建立專案目錄，放入 `template.pot`。
-2. 在相同目錄建立 `template-translations.py`（`<potstem>-translations.py`）：
+2. 在相同目錄建立 `template-translations.py`（`{potstem}-translations.py`）：
   ```python
    TRANSLATIONS = {
        "msgid 原文": "正體中文翻譯",
@@ -153,12 +153,12 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 ### A2. 大專案（≥ 2000 條）
 
 1. 切批：依 POT 行號範圍 `[start, end]`（1-based，含兩端）提取待翻譯條目。
-   - **先確認來源總條數**（`extract_batch.py --verify-total <N>`，或
-     `uv run python3 -c "import polib,sys;print(len([e for e in polib.pofile(sys.argv[1]) if e.msgid]))" <template.pot>`），
+   - **先確認來源總條數**（`extract_batch.py --verify-total {N}`，或
+     `uv run python3 -c "import polib,sys;print(len([e for e in polib.pofile(sys.argv[1]) if e.msgid]))" {template.pot}`），
      以免對總數掌握錯誤。
   ```bash
    uv run python3 skills/l10n-tw/scripts/extract_batch.py \
-     <path/to/template.pot> <batch1.json> <start1> <end1>
+     {path/to/template.pot} {batch1.json} {start1} {end1}
   ```
    > 批間行號範圍若留間隙（空白列＋下一條目首行落在縫隙），該條目會被**靜默略過**
    > 且 `extract_batch.py` 不警告。切批後務必以 `merge_batches.py --expected-total` 核對總覆蓋率。
@@ -172,7 +172,7 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
   ```bash
    uv run python3 skills/l10n-tw/scripts/merge_batches.py \
      batch1.json batch2.json ... -o template-translations.py \
-     --expected-total <來源總條數>
+     --expected-total {來源總條數}
   ```
 4. 執行通用驗證步驟。
 
@@ -188,7 +188,7 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 1. 從舊 PO 抽出非空譯文（輸出檔名對應新 POT 的 potstem）：
   ```bash
    uv run python3 skills/l10n-tw/scripts/po_to_translations.py \
-     <path/to/old-zh_TW.po> -o <potstem>-translations.py
+     {path/to/old-zh_TW.po} -o {potstem}-translations.py
   ```
 2. 執行通用驗證步驟。`po_gen.py` 會報告 missing 條目，依新 POT 補翻。
 
@@ -201,7 +201,7 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 1. 用 `--all` 從舊 PO 抽出全部條目（保留既有 msgstr）：
   ```bash
    uv run python3 skills/l10n-tw/scripts/extract_batch.py --all \
-     <path/to/old-zh_TW.po> <batch1.json> <start1> <end1>
+     {path/to/old-zh_TW.po} {batch1.json} {start1} {end1}
   ```
 2. 逐批審修、補翻。
 3. 合併為 translations 檔（同 A2 步驟 3）。
@@ -222,9 +222,9 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 1. 萃取 POT：
   ```bash
    uv run python3 skills/l10n-tw/scripts/po_to_pot.py \
-     <path/to/source.po> -o <path/to/project.pot>
+     {path/to/source.po} -o {path/to/project.pot}
   ```
-2. 手建 `<potstem>-translations.py`（同 A1 步驟 2）。
+2. 手建 `{potstem}-translations.py`（同 A1 步驟 2）。
 3. 執行通用驗證步驟。
 
 ### C2. 大專案
@@ -243,10 +243,10 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 
 | 驗證項目 | 標準路徑（情境 A/B/C，translations 檔） | PO 直接路徑（情境 D） |
 |---|---|---|
-| 用語修正 | `fix_terminology.py <potstem>-translations.py` | `fix_terminology.py <output.po>`（PO 模式） |
+| 用語修正 | `fix_terminology.py {potstem}-translations.py` | `fix_terminology.py {output.po}`（PO 模式） |
 | 生成 PO | `po_gen.py`（translation 檔 → PO） | 不需生成，直接編輯 |
-| 驗證 PO | `po_verify.py <pot>.pot <output.po>` + `msgfmt -cv` | 同左；無 POT 時先 `po_to_pot.py` 萃取 |
-| 對齊檢查 | `po_align_check.py <pot>.pot <output.po>` | 同左 |
+| 驗證 PO | `po_verify.py {pot}.pot {output.po}` + `msgfmt -cv` | 同左；無 POT 時先 `po_to_pot.py` 萃取 |
+| 對齊檢查 | `po_align_check.py {pot}.pot {output.po}` | 同左 |
 | 回歸測試 | `regression_test.py --root` | 不涵蓋（已知限制，見情境 D） |
 | 佔位符／空格標點抽查 | 人工抽查（見品質自檢清單） | 同左 |
 
@@ -259,18 +259,18 @@ uv run python3 -c "import polib"   # 確認成功後再繼續
 
 ```bash
 uv run python3 skills/l10n-tw/scripts/fix_terminology.py \
-  <path/to/<potstem>-translations.py>
+  {potstem}-translations.py
 ```
 
 輸入為 `.po` 檔時自動切換為 PO 模式，掃描所有 msgstr（含複數）：
 
 ```bash
 uv run python3 skills/l10n-tw/scripts/fix_terminology.py \
-  <path/to/output.po>
+  {path/to/output.po}
 ```
 
 預設會讀取技能內 `references/terminology.md`；若要指定其他術語表，用
-`--terms <path/to/terminology.md>`。
+`--terms {path/to/terminology.md}`。
 
 術語表標記三種語意，自動化程度不同：
 
@@ -303,9 +303,9 @@ uv run python3 skills/l10n-tw/scripts/fix_terminology.py \
 
 ```bash
 uv run python3 skills/l10n-tw/scripts/po_gen.py \
-  <path/to/template.pot> \
-  -t <path/to/template-translations.py> \
-  -o <path/to/output.zh_TW.po>
+  {path/to/template.pot} \
+  -t {path/to/template-translations.py} \
+  -o {path/to/output.zh_TW.po}
 ```
 
 > 輸出路徑原則上應與來源 POT 同層目錄；專案另有指定工作目錄時，依指定目錄輸出。
@@ -321,9 +321,9 @@ uv run python3 skills/l10n-tw/scripts/po_gen.py \
 
 ```bash
 uv run python3 skills/l10n-tw/scripts/po_verify.py \
-  <path/to/template.pot> <path/to/output.po> --comments
+  {path/to/template.pot} {path/to/output.po} --comments
 
-msgfmt -cv <path/to/output.po> -o /dev/null
+msgfmt -cv {path/to/output.po} -o /dev/null
 ```
 
 確認：
@@ -345,7 +345,7 @@ Translation Project 等指令型套件的 `--help` 輸出會把每個選項補�
 
 ```bash
 uv run python3 skills/l10n-tw/scripts/po_align_check.py \
-  <path/to/template.pot> <path/to/output.po>
+  {path/to/template.pot} {path/to/output.po}
 ```
 
 - 選項行（前導空白 ≥2 且有 2+ 空格分隔）：譯文說明欄位必須等於原文欄位
@@ -369,7 +369,7 @@ uv run python3 -c "import polib"
 SOP（`uv venv` → `uv pip install polib`）建立環境後重試。確認無誤後再執行：
 
 ```bash
-uv run python3 skills/l10n-tw/scripts/regression_test.py --root <projects-dir>
+uv run python3 skills/l10n-tw/scripts/regression_test.py --root {projects-dir}
 ```
 
 `--root` 為必填，指向含 (POT, translations 檔) 專案對的目錄（不會隱式掃描 cwd）；
@@ -384,14 +384,14 @@ uv run python3 skills/l10n-tw/scripts/regression_test.py --root <projects-dir>
 
 | 腳本                      | 用途       | 輸入                                 | 輸出                     |
 | ----------------------- | -------- | ---------------------------------- | ---------------------- |
-| `po_gen.py`             | 生成 PO    | `template.pot` + `<potstem>-translations.py` | `zh_TW.po`             |
+| `po_gen.py`             | 生成 PO    | `template.pot` + `{potstem}-translations.py` | `zh_TW.po`             |
 | `po_verify.py`          | 驗證 PO    | `template.pot` + `zh_TW.po`        | 報告 + exit code         |
 | `po_align_check.py`     | CLI 對齊檢查 | `template.pot` + `zh_TW.po`        | 報告 + exit code         |
 | `po_preflight.py`       | 來源檔預檢    | 來源 `.pot`／`.po`                    | 報告 + exit code         |
 | `po_to_pot.py`          | 萃取 POT   | 任意 PO                              | 無翻譯的 POT               |
-| `po_to_translations.py` | 抽出舊譯文    | 繁體中文 PO                            | `<potstem>-translations.py` |
+| `po_to_translations.py` | 抽出舊譯文    | 繁體中文 PO                            | `{potstem}-translations.py` |
 | `extract_batch.py`      | 切批       | PO 或 POT                           | `batchN.json`          |
-| `merge_batches.py`      | 合併批次     | 多個 `batchN.json`                   | `<potstem>-translations.py` |
+| `merge_batches.py`      | 合併批次     | 多個 `batchN.json`                   | `{potstem}-translations.py` |
 | `apply_translations.py` | 直接套用至 PO | `batchN.json` + 既有 PO              | 更新後的 PO                |
 | `fix_terminology.py`    | 用語正規化    | translations 檔（`translations.py` 或 `.po`） | 修正後的同格式檔            |
 | `regression_test.py`    | 回歸測試     | 所有專案                               | 比對報告                   |
@@ -405,27 +405,27 @@ uv run python3 skills/l10n-tw/scripts/regression_test.py --root <projects-dir>
 
 ```bash
 uv run python3 skills/l10n-tw/scripts/apply_translations.py \
-  <batchN.json> -o <path/to/output.po>
+  {batchN.json} -o {path/to/output.po}
 ```
 
 **此路徑的驗證 SOP（品質檢查同等重要，不可跳過）：**
 
 1. **用語修正**（PO 模式）：
    ```bash
-   uv run python3 skills/l10n-tw/scripts/fix_terminology.py <path/to/output.po>
+   uv run python3 skills/l10n-tw/scripts/fix_terminology.py {path/to/output.po}
    ```
 2. **生成／取得 POT**：有上游新 POT 直接用；否則從既有 PO 萃取：
    ```bash
-   uv run python3 skills/l10n-tw/scripts/po_to_pot.py <path/to/output.po> -o <path/to/project.pot>
+   uv run python3 skills/l10n-tw/scripts/po_to_pot.py {path/to/output.po} -o {path/to/project.pot}
    ```
 3. **驗證 PO**：
    ```bash
-   uv run python3 skills/l10n-tw/scripts/po_verify.py <path/to/project.pot> <path/to/output.po> --comments
-   msgfmt -cv <path/to/output.po> -o /dev/null
+   uv run python3 skills/l10n-tw/scripts/po_verify.py {path/to/project.pot} {path/to/output.po} --comments
+   msgfmt -cv {path/to/output.po} -o /dev/null
    ```
 4. **對齊檢查**（CLI 求助文字）：
    ```bash
-   uv run python3 skills/l10n-tw/scripts/po_align_check.py <path/to/project.pot> <path/to/output.po>
+   uv run python3 skills/l10n-tw/scripts/po_align_check.py {path/to/project.pot} {path/to/output.po}
    ```
 5. **品質自檢清單**（見下方）逐項檢查。
 
@@ -454,37 +454,37 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 4. **提交方式** — 確認完成後如何交付：手動上傳（如 Weblate 網頁上傳 PO）、git commit + PR（慣例見 `references/github.md`）、或其他管道
 5. **分批切割**（大專案適用） — 列出預計批次範圍
 6. **翻譯者身份（Last-Translator）** — 產出 PO 前確認翻譯者身份，來源依序為：
-  - `--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `skills/l10n-tw/.env` 設定檔
+  - `--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `{project-dir}/translator.txt` 設定檔
   - 三者皆無時依以下三步驟處理：
     1. 詢問使用者姓名與 email
-    2. **必須接著問**是否寫入 `skills/l10n-tw/.env` 永久保存，供以後翻譯任務自動套用
-    3. 同意 → 建立／寫入 `.env`（格式 `L10N_TW_TRANSLATOR="Name <email>"`）並回報已保存；拒絕 → 僅本次使用該身份，不寫入檔案
+    2. **必須接著問**是否寫入 `{project-dir}/translator.txt` 永久保存，供以後翻譯任務自動套用
+    3. 同意 → 建立／寫入 `translator.txt`（格式 `L10N_TW_TRANSLATOR="Name <email>"`）並回報已保存；拒絕 → 僅本次使用該身份，不寫入檔案
 
 **[GATE] 翻譯計畫確認** — 將上述摘要展示給使用者，明確等使用者確認後才開始 Phase 1。計畫未經確認，不得進行翻譯。
 
-- **完成標準：** 來源格式、條數、情境/流程、是否批次、既有翻譯去留、提交方式、翻譯者身份（含是否保存至 `.env`）皆經使用者確認
+- **完成標準：** 來源格式、條數、情境/流程、是否批次、既有翻譯去留、提交方式、翻譯者身份（含是否保存至 `translator.txt`）皆經使用者確認
 
 ### Phase 1 — 前置準備
 
 1. **Reconnaissance** — 確認 i18n 框架（gettext / GResource XML / Blueprint）、locale 命名慣例（看既有 .po 檔名或 LINGUAS）、POT msgid 數量
   - **完成標準：** i18n 框架已確認、locale 命名已確認、POT msgid 數量已記錄
-2. **Fork** — 透過 `gh repo fork <upstream> --remote-name fork`，再重構 remote（origin=fork, upstream=upstream）。遠端命名慣例見 `references/github.md`。來源僅 repo URL 時，先在暫存工作區建立 clone（如 `gh repo clone <upstream> $TMPDIR/l10n-tw/<project>`），再於 clone 內執行 fork 與 remote 重構
+2. **Fork** — 透過 `gh repo fork {upstream} --remote-name fork`，再重構 remote（origin=fork, upstream=upstream）。遠端命名慣例見 `references/github.md`。來源僅 repo URL 時，先在暫存工作區建立 clone（如 `gh repo clone {upstream} $TMPDIR/l10n-tw/{project}`），再於 clone 內執行 fork 與 remote 重構
   - **完成標準：** `git remote -v` 顯示正確的 origin 與 upstream
-3. **取得 POT** — 從上游取得最新的 POT；若上游沒有 POT，只有既有 PO 檔，則用 `po_to_pot.py` 萃取。來源僅 repo URL 時，將 clone 內的 POT／PO 複製至工作目錄 `<project>-work/`，以其為來源
-  - **完成標準：** 專案工作目錄中存在 `<project>.pot`
+3. **取得 POT** — 從上游取得最新的 POT；若上游沒有 POT，只有既有 PO 檔，則用 `po_to_pot.py` 萃取。來源僅 repo URL 時，將 clone 內的 POT／PO 複製至工作目錄 `{project}-work/`，以其為來源
+  - **完成標準：** 專案工作目錄中存在 `{project}.pot`
 4. **來源檔格式驗證** — 建立 translations 檔之前，先確認來源 POT／PO 內容格式符合規範，否則後續 `po_gen.py`／`po_verify.py`／`po_to_pot.py`／`po_to_translations.py` 會失敗或靜默產出錯誤結果。
   ```bash
-   uv run python3 skills/l10n-tw/scripts/po_preflight.py <path/to/source.pot_or_po>
+   uv run python3 skills/l10n-tw/scripts/po_preflight.py {path/to/source.pot_or_po}
   ```
 
    `po_preflight.py` 會檢查：編碼與 BOM、檔頭條目、必填檔頭欄位（`Content-Type`、`Plural-Forms` 等）、`msgfmt -cv` 格式合法性、檔頭／條目級 `#, fuzzy` 旗標、重複 `(msgctxt, msgid)`、過時 `#~` 條目、行尾。檔頭格式基準見 [`references/l10n-tw-guide.md`](references/l10n-tw-guide.md)「四、PO 檔頭格式規範」。
   - **異常處置（軟停止）** — 腳本退出碼 1 時，把回報的異常清單展示給使用者，由使用者決定先修正來源檔或以現況繼續；不強制中止流程
   - **完成標準：** `po_preflight.py` 退出碼 0；若退出碼 1，所有異常已展示給使用者並取得處置決定
-5. **建立專案目錄** — 將 `<project>.pot` 放入專案目錄，建立 `<project>-translations.py`。預設所有非暫存產出檔案（`<potstem>-translations.py`、生成的 PO）與 POT 位於同一層
-  - 專案目錄預設與來源檔案 `<project>.pot` 或 `<project>.po` 同一層
+5. **建立專案目錄** — 將 `{project}.pot` 放入專案目錄，建立 `{project}-translations.py`。預設所有非暫存產出檔案（`{potstem}-translations.py`、生成的 PO）與 POT 位於同一層
+  - 專案目錄預設與來源檔案 `{project}.pot` 或 `{project}.po` 同一層
   - 如果另有指定工作目錄者，以指定目錄為優先。
-  - 來源僅 repo URL 時，專案目錄＝工作目錄 `<project>-work/`（clone 外）
-  - **完成標準：** 專案目錄包含 `<project>.pot` 與 `<project>-translations.py`
+  - 來源僅 repo URL 時，專案目錄＝工作目錄 `{project}-work/`（clone 外）
+  - **完成標準：** 專案目錄包含 `{project}.pot` 與 `{project}-translations.py`
 
 ### Phase 2 — 翻譯
 
@@ -519,7 +519,7 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 - **方式一：commit/PR** — 適用 git repo
   1. **[GATE] Show PO to user** — 展示產出的 PO 成品要先審核，**確認後才能繼續下一步**
   2. **回填 clone** — 來源僅 repo URL 時，將工作目錄產出的 PO（與 LINGUAS 修改）複製回 clone 對應位置，確認 `git status` 僅含交付物
-  3. **Branch** — 命名 `zh-tw-translation`；monorepo 用 `<project>-zh-tw` 避免混淆。慣例見 `references/github.md`
+  3. **Branch** — 命名 `zh-tw-translation`；monorepo 用 `{project}-zh-tw` 避免混淆。慣例見 `references/github.md`
     - **完成標準：** branch 已建立，名稱符合慣例
   4. **[GATE] Show diff + commit message** — `git diff --cached` 展示變更，同時展示 commit message（`git commit -m "..."`），等確認後才能 commit
   5. **[GATE] Show PR draft** — 展示 PR title + body 草稿，等確認後才能 push 與 `gh pr create`
@@ -539,7 +539,7 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 - **語言環境命名**：跟著上游走，不幫上游決定標準。請見 [`references/locale.md`](references/locale.md) 了解 zh_TW 與 zh_Hant 的選擇原則
 - **不要直接從 zh_CN 轉換**：簡→繁會帶入中國用語（軟件/文件/信息），逐條從 POT 翻
 - **翻譯品質守則**：翻譯前詳閱 [`references/l10n-tw-guide.md`](references/l10n-tw-guide.md)，特別是基本守則（禁止機器/AI 直接提交、禁止簡轉繁、用語前後一致等）
-- **產出檔案目錄**：專案目錄動態，以要翻譯的 PO/POT 所在目錄為主；產出檔案（`<potstem>-translations.py`、生成的 PO）與來源 POT 位於同一層目錄
+- **產出檔案目錄**：專案目錄動態，以要翻譯的 PO/POT 所在目錄為主；產出檔案（`{potstem}-translations.py`、生成的 PO）與來源 POT 位於同一層目錄
 - **驗證暫存檔清理**：若任務中沒有要輸出 `.mo` 檔，純為驗證用途而產生的 `messages.mo`（`msgfmt` 預設輸出）應於作業後清理
 
 ---
@@ -550,14 +550,13 @@ uv run python3 skills/l10n-tw/scripts/apply_translations.py \
 2. `**More Colors...` vs `More Colors…`** — 三個點（ASCII `...`）與 Unicode 省略號 `…` 是不同的 msgid，兩者都要有對應翻譯
 3. `**translations 檔與 committed PO 可能 drift** — 手動編輯 PO 後 translations 檔不會自動同步。修改技能腳本後應執行 `regression_test.py`，由 drift 導致的差異須回寫到 translations 檔再重新生成 PO
 4. `**#` 開頭的 fuzzy flag** — 產生 PO 後須確認 header 的 `#, fuzzy` 已移除
-5. **execute_code 不載入 env** — 需要 gh CLI / git 操作時要用 terminal 工具
-6. **跳脫字元** — `\n`、`\"`、`\\` 在 PO 裡有特殊意義
-7. **翻譯用語一致性** — 同一專案內不要同一個英文詞用不同中文翻法
-8. **Locale 命名混亂** — `zh_TW`（GNU gettext 傳統） vs `zh_Hant`（BCP 47 現代標準），依上游決定。詳見 `references/locale.md`
-9. **舊 PO 譯文可能與新 POT 對不上** — 上游更新後 msgid 可能變動；轉成 translations 檔後用 `po_gen.py` 的 missing 報告補洞
-10. **批次流程一定要合併回 translations 檔** — 若停留在 `apply_translations.py` 產出的 PO，`regression_test.py` 不會涵蓋
-11. **polib 未安裝** — 回歸測試報 `No module named 'polib'` 時，依「[環境準備](#環境準備首次執行必做)」執行 `uv venv` + `uv pip install polib`（順序不可顛倒）。`uv run` 在無 .venv 時會靜默退回裸 Python，不能以「指令能跑」判斷環境就緒
-12. **`split('\n')` 幻影尾元素** — 以換行結尾的輸入經 `text.split('\n')` 會多出 `''` 尾元素，join 重建後檔尾變雙換行。任何以「讀入 → 逐行處理 → 重建」為模式的腳本，輸出前必須過 `po_gen.normalize_eof()`（恰好一個 `\n`）；此類缺陷 `msgfmt`／條目級檢查看不見，須靠 `po_verify.py`／`po_preflight.py` 的 EOF 檢查攔截
-13. **`line` 譯為「列」而非「行」** — 指令套件的設定檔解析錯誤訊息（`line %d`、`%d lines`）中，line 依社群慣例譯為「列」（直行橫列）。`fix_terminology.py` 的 `對應「line」「lines」留意「行」` 錨定規則會掃描回報，但「行」也可能出現在合法複詞（換行、執行、行為、行號）中，須依 msgid 語境人工判定，不得一律機械替換
-14. **CLI 求助文字對齊** — 翻譯含 CJK 後選項寬度改變，補空格須依**顯示寬度**（CJK=2 欄）重算使說明欄位與原文一致；`po_align_check.py` 偵測偏移。譯文換行結構與原文不同（如合併續行）時檢查器會跳過該行——此時人工確認對齊即可。Tab 對齊的專案由 Tab 本身保證，檢查器自動跳過
+5. **跳脫字元** — `\n`、`\"`、`\\` 在 PO 裡有特殊意義
+6. **翻譯用語一致性** — 同一專案內不要同一個英文詞用不同中文翻法
+7. **Locale 命名混亂** — `zh_TW`（GNU gettext 傳統） vs `zh_Hant`（BCP 47 現代標準），依上游決定。詳見 `references/locale.md`
+8. **舊 PO 譯文可能與新 POT 對不上** — 上游更新後 msgid 可能變動；轉成 translations 檔後用 `po_gen.py` 的 missing 報告補洞
+9. **批次流程一定要合併回 translations 檔** — 若停留在 `apply_translations.py` 產出的 PO，`regression_test.py` 不會涵蓋
+10. **polib 未安裝** — 回歸測試報 `No module named 'polib'` 時，依「[環境準備](#環境準備首次執行必做)」執行 `uv venv` + `uv pip install polib`（順序不可顛倒）。`uv run` 在無 .venv 時會靜默退回裸 Python，不能以「指令能跑」判斷環境就緒
+11. **`split('\n')` 幻影尾元素** — 以換行結尾的輸入經 `text.split('\n')` 會多出 `''` 尾元素，join 重建後檔尾變雙換行。任何以「讀入 → 逐行處理 → 重建」為模式的腳本，輸出前必須過 `po_gen.normalize_eof()`（恰好一個 `\n`）；此類缺陷 `msgfmt`／條目級檢查看不見，須靠 `po_verify.py`／`po_preflight.py` 的 EOF 檢查攔截
+12. **`line` 譯為「列」而非「行」** — 指令套件的設定檔解析錯誤訊息（`line %d`、`%d lines`）中，line 依社群慣例譯為「列」（直行橫列）。`fix_terminology.py` 的 `對應「line」「lines」留意「行」` 錨定規則會掃描回報，但「行」也可能出現在合法複詞（換行、執行、行為、行號）中，須依 msgid 語境人工判定，不得一律機械替換
+13. **CLI 求助文字對齊** — 翻譯含 CJK 後選項寬度改變，補空格須依**顯示寬度**（CJK=2 欄）重算使說明欄位與原文一致；`po_align_check.py` 偵測偏移。譯文換行結構與原文不同（如合併續行）時檢查器會跳過該行——此時人工確認對齊即可。Tab 對齊的專案由 Tab 本身保證，檢查器自動跳過
 

@@ -96,7 +96,7 @@ ln -s "$PWD/skills/l10n-tw" .claude/skills/l10n-tw
 gemini skills link /path/to/skills/l10n-tw --scope user
 ```
 
-**跨平台工具**（skills.sh 生態系，自動偵測已安裝的 agent、以符號連結安裝；可用 `--skill l10n-tw` 只裝本技能、`-a <agent>` 指定平台、`-y` 跳過互動確認）：
+**跨平台工具**（skills.sh 生態系，自動偵測已安裝的 agent、以符號連結安裝；可用 `--skill l10n-tw` 只裝本技能、`-a {agent}` 指定平台、`-y` 跳過互動確認）：
 
 ```bash
 # 專案模式（預設）：安裝至目前專案（如 .claude/skills/），可隨專案提交與團隊共享
@@ -115,7 +115,7 @@ uv run python3 scripts/po_verify.py --help   # 確認 uv 與腳本可執行
 msgfmt --version                             # 確認 gettext 可用
 ```
 
-> **注意**：技能目錄內的 `.env`（翻譯者身份設定）已被 `.gitignore` 排除，clone 不會帶入；需要永久保留翻譯者身份時請自行建立（見「翻譯者身份」章節）。
+> **注意**：翻譯者身份檔 `{project-dir}/translator.txt` 位於被翻譯的專案目錄內，不隨技能安裝；需要永久保留翻譯者身份時請自行建立（見「翻譯者身份」章節）。
 
 ## 使用方式
 
@@ -128,18 +128,18 @@ AI 會依 `SKILL.md` 的 SOP 進行：確認翻譯計畫 → 預檢來源檔 →
 核心指令（在技能目錄執行）：
 
 ```bash
-uv run python3 scripts/po_preflight.py <source.pot_or_po>   # 來源檔預檢
-uv run python3 scripts/po_gen.py <t.pot> -t <potstem>-translations.py -o out-zh_TW.po
-uv run python3 scripts/po_verify.py <t.pot> <out.po> --comments
-uv run python3 scripts/regression_test.py --root <projects-dir>   # 回歸測試（--root 必填）
+uv run python3 scripts/po_preflight.py {source.pot_or_po}   # 來源檔預檢
+uv run python3 scripts/po_gen.py {t.pot} -t {potstem}-translations.py -o out-zh_TW.po
+uv run python3 scripts/po_verify.py {t.pot} {out.po} --comments
+uv run python3 scripts/regression_test.py --root {projects-dir}   # 回歸測試（--root 必填）
 ```
 
 詳細情境流程見 `SKILL.md`。
 
 ### 翻譯者身份（Last-Translator）
 
-生成 PO 時，翻譯者身份依序從以下來源解析：CLI `--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `.env` 設定檔；皆無時，AI 會詢問翻譯者姓名與 email，並確認是否寫入 `.env` 永久保存，供以後的翻譯任務自動套用。永久保留也可自行寫入 `.env`（已被 `.gitignore` 排除，不會被提交）：
+生成 PO 時，翻譯者身份依序從以下來源解析：CLI `--translator` 參數 → `L10N_TW_TRANSLATOR` 環境變數 → `{project-dir}/translator.txt` 設定檔（`{project-dir}` 為要翻譯的 PO/POT 所在目錄，腳本會由輸入檔路徑逐層往上搜尋）；皆無時，AI 會詢問翻譯者姓名與 email，並確認是否寫入 `translator.txt` 永久保存，供以後的翻譯任務自動套用。永久保留也可自行寫入（檔案含 email，不應提交）：
 
 ```bash
-echo 'L10N_TW_TRANSLATOR=Name <name@example.org>' >> .env
+echo 'L10N_TW_TRANSLATOR=Name <name@example.org>' >> {project-dir}/translator.txt
 ```

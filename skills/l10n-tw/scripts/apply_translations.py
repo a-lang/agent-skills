@@ -34,20 +34,33 @@ TRANSLATOR = "Translator Name <translator@example.org>"
 LANGUAGE = "zh_TW"
 
 
-def resolve_translator(cli_value: str | None) -> str:
-    """Resolve Last-Translator: CLI arg > L10N_TW_TRANSLATOR env > skill .env > placeholder."""
+def find_translator_file(start: Path) -> Path | None:
+    """Walk up from start's directory looking for translator.txt (bounded, no disk-wide scan)."""
+    d = start.resolve().parent
+    for _ in range(4):
+        f = d / "translator.txt"
+        if f.is_file():
+            return f
+        if d.parent == d:
+            break
+        d = d.parent
+    return None
+
+
+def resolve_translator(cli_value: str | None, start: Path) -> str:
+    """Resolve Last-Translator: CLI arg > L10N_TW_TRANSLATOR env > {project-dir}/translator.txt > placeholder."""
     value = cli_value or os.environ.get("L10N_TW_TRANSLATOR")
     if value:
         return value
-    env_file = Path(__file__).resolve().parent.parent / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
+    config_file = find_translator_file(start)
+    if config_file:
+        for line in config_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line.startswith("L10N_TW_TRANSLATOR="):
                 v = line.split("=", 1)[1].strip().strip('"').strip("'")
                 if v:
                     return v
-    print("⚠️  No translator specified (--translator / L10N_TW_TRANSLATOR / skills/l10n-tw/.env). Using placeholder.")
+    print("⚠️  No translator specified (--translator / L10N_TW_TRANSLATOR / {project-dir}/translator.txt). Using placeholder.")
     return TRANSLATOR
 
 
@@ -153,9 +166,9 @@ def main():
     parser.add_argument('-o', '--output', required=True,
                         help='Path to target PO file (modified in place)')
     parser.add_argument('--translator', default=None,
-                        help='Last-Translator value (default: resolve from L10N_TW_TRANSLATOR env / skill .env)')
+                        help='Last-Translator value (default: resolve from L10N_TW_TRANSLATOR env / {project-dir}/translator.txt)')
     args = parser.parse_args()
-    translator = resolve_translator(args.translator)
+    translator = resolve_translator(args.translator, Path(args.output))
 
     try:
         with open(args.batch, 'r', encoding='utf-8') as f:
