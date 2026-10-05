@@ -152,7 +152,7 @@
 | Load | 載入 | 不翻「加載」 |
 | Local | 區域 | 留意「局部/本地」、亦作：本機、分別為與 global 和 remote 相對時 |
 | location | 位置 |  |
-| Macro | 巨集 |  |
+| Macro | 巨集 | 不翻「宏」 |
 | Memory / RAM | 記憶體 | 不翻「內存」、亦作：主（要）記憶體、1. 近年來不少電腦推銷員在介紹產品時，常把「內存」與「儲存空間」的用語混用，導致混淆<br>2. 主要記憶體(primary storage)的翻譯為相對於次要記憶體(secondary storage)，參閱 [Computer data storage - Wikipedia](https://en.wikipedia.org/wiki/Computer_data_storage#Primary_storage)，可避免與其他類型記憶體（如硬碟）混淆 |
 | Menu | 選單 | 留意「菜單」、亦作：功能表 |
 | Merge Sort | 合併排序 | 不翻「歸併排序」 |
@@ -160,7 +160,8 @@
 | metadata | 中繼資料 |  |
 | Modulation | 調變 | 不翻「調製」 |
 | Module | 模組 | 不翻「模塊」 |
-| Mouse | 滑鼠 |  |
+| Monitor | 監視器 | 亦作：螢幕，不翻「屏幕」 |
+| Mouse | 滑鼠 | 不翻「鼠標」 |
 | Navigation bar | 導覽列 | 留意「導航欄」、亦作：導航條 |
 | Network | 網路 | 不翻「網絡」、香港稱呼為網絡 |
 | Network adapter | 網路介面卡 | 不翻「網絡適配器」、參見[微軟語言入口網站](https://www.microsoft.com/zh-tw/language/Search?&searchTerm=adapter&langID=124&Source=true&productid=0) |
@@ -181,6 +182,7 @@
 | Polymorphism | 多型 | 不翻「多態」 |
 | Pool | 集池 |  |
 | Port | 連接埠 | 亦作：通訊埠、(a.) 實體的插孔或連接處<br>(b.) [網路通訊名詞](https://terms.naer.edu.tw/detail/1284277/) |
+| Portal | 入口 |   |
 | Postfix | 尾碼 | 留意「後綴」 |
 | Power Adapter | 電源供應器 | 不翻「電源適配器」、亦作：充電器、[adapter 與 charger 差異探討](https://www.etechnog.com/2019/06/difference-between-charger-adapter.html#:~:text=The%20charger%20is%20specially%20designed%20to%20charge%20a%20device%20such,power%20supply%20to%20a%20device.) |
 | Powered By | 威力本源 | 不翻「由...驅動」、亦作：由…提供、威力本源乃是優秀的翻譯例子之一 |
@@ -223,7 +225,7 @@
 | Signal | 訊號 | 不翻「信號」 |
 | Signature | 特徵 | 留意「簽名」、function signature |
 | Slider | 滑桿 | 留意「滑塊」、圖形介面中的一種控制元件，[見圖](https://docs.microsoft.com/en-us/windows/apps/design/controls/slider) |
-| Socket | 插口（網路） | 不翻「套接字（網路）」、亦作：(保留原文)、「插座」是 socket 在電氣領域的特化用語，socket 一字多義，例如 eye socket 指眼眶。<br>由於「插座」在漢語已是特化用語，就不以「插座」稱呼電腦網路領域的 socket |
+| Socket | Socket | 根據 GNOME 與 KDE 慣例保留原文、「插座」是 socket 在電氣領域的特化用語，socket 一字多義，例如 eye socket 指眼眶。<br>由於「插座」在漢語已是特化用語，就不以「插座」稱呼電腦網路領域的 socket |
 | Software | 軟體 | 香港亦有「軟件」的稱呼 |
 | source | 來源 |  |
 | Source Code | 來源碼 | 留意「原始碼」 |
