@@ -2,6 +2,8 @@
 
 An **Agent Skill** for operating a self-hosted BookStack wiki's REST API via a zero-dependency CLI.
 
+BookStack ([bookstackapp.com](https://www.bookstackapp.com), source at [Codeberg](https://codeberg.org/bookstack/bookstack)) is a self-hosted open-source wiki and documentation platform for organizing content as books, chapters, and pages.
+
 Based on the [Agent Skills open standard](https://agentskills.io/specification): a directory containing `SKILL.md`, plus a single-file Python CLI (`scripts/bookstack-api-cli.py`), contract references, and black-box tests. Install it as-is into Claude Code, OpenCode, Gemini CLI, Cursor, GitHub Copilot, Codex, or any platform that supports Agent Skills.
 
 ## Features
