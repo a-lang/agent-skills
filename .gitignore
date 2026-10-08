@@ -5,5 +5,3 @@ __pycache__
 opencode.json
 translator.txt
 .docs/
-l10n-tw-security-audit-report.md
-po-eof-newline-incident-report.md

@@ -5,9 +5,10 @@
 ## 技能
 
 
-| 技能      | 說明             | 目錄                |
-| ------- | -------------- | ----------------- |
-| l10n-tw | 正體中文（zh-TW）在地化 | `skills/l10n-tw/` |
+| 技能      | 說明                         | 目錄                |
+| ------- | -------------------------- | ----------------- |
+| l10n-tw | 正體中文（zh-TW）在地化             | `skills/l10n-tw/` |
+| bookstack | BookStack Wiki REST API 操作 | `skills/bookstack/` |
 
 
 ## 快速安裝
@@ -15,9 +16,11 @@
 ```bash
 # 專案模式（預設）：安裝至目前專案（如 .claude/skills/），可隨專案提交與團隊共享
 npx skills add https://github.com/a-lang/agent-skills --skill l10n-tw
+npx skills add https://github.com/a-lang/agent-skills --skill bookstack
 
 # 全域模式（-g）：安裝至使用者目錄（如 ~/.claude/skills/），跨專案可用
 npx skills add https://github.com/a-lang/agent-skills --skill l10n-tw -g
+npx skills add https://github.com/a-lang/agent-skills --skill bookstack -g
 ```
 
 ## 開發
