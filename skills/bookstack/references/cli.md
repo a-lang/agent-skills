@@ -7,7 +7,7 @@
 
 - **Thin REST wrapper**: each subcommand = one HTTP call; the shared layer handles only authentication,
   multipart, 429 retries, and error mapping.
-- **agent-first**: opencode/pi/hermes call it via bash; output is programmatically parseable (`jq`/pipelines).
+- **agent-first**: any coding agent with shell access calls it via bash; output is programmatically parseable (`jq`/pipelines).
 - **Does not do**: automatic pagination, content rendering, caching, dry-run, interactive prompts.
 
 ## argv grammar

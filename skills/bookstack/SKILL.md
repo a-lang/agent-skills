@@ -10,7 +10,8 @@ metadata:
 
 An agent-first thin REST wrapper for a self-hosted BookStack wiki: each subcommand is exactly
 one HTTP call, and the shared layer handles only authentication, multipart, 429 retries, and
-error mapping. Output can be consumed directly by `jq` or pipelines.
+error mapping. Output can be consumed directly by `jq` or pipelines
+(without `jq`, pipe through `python3 -m json.tool` instead).
 
 ## When to use
 
@@ -27,6 +28,12 @@ Run from the skill directory (zero dependencies; either `uv run python3` or bare
 uv run python3 scripts/bookstack-api-cli.py <resource> <action> [args] [flags]
 uv run python3 scripts/bookstack-api-cli.py auth status
 uv run python3 scripts/bookstack-api-cli.py --help
+```
+
+Without `uv`, use bare `python3` (stdlib-only, no installation step):
+
+```bash
+python3 scripts/bookstack-api-cli.py auth status
 ```
 
 When unsure about flags, ask the CLI first: `<resource> --help` and `<resource> <action> --help`
