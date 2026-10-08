@@ -5,3 +5,4 @@ __pycache__
 opencode.json
 translator.txt
 .docs/
+.env
