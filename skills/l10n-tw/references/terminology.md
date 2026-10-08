@@ -47,7 +47,7 @@
 | Binary | 二進位 | 「進位制」在台灣簡稱「進位」，在中國簡稱「进制」 |
 | Binary Search | 二元搜尋 | 不翻「二分查找/二分搜索」 |
 | Binary Tree | 二元樹 | 不翻「二叉樹」 |
-| Binding | 繫結/綁定 | 可參考[此討論](https://t.me/l10n_tw/34803)，依語境自行斟酌。 |
+| Binding | 綁定/繫結 | 可參考[此討論](https://t.me/l10n_tw/34803)，依語境自行斟酌。 |
 | Bitmap | 點陣圖 | 不翻「位圖」 |
 | Bitrate | 位元率 | 不翻「碼率/比特率」、亦作：位元速率 |
 | Bless | 引導 | 技術文件不翻「祝福」 |
@@ -181,7 +181,7 @@
 | Pointer | 指標 | 留意「指針」、C 語言中用來存放記憶體位址的一種資料型別 |
 | Polymorphism | 多型 | 不翻「多態」 |
 | Pool | 集池 |  |
-| Port | 連接埠 | 亦作：通訊埠、(a.) 實體的插孔或連接處<br>(b.) [網路通訊名詞](https://terms.naer.edu.tw/detail/1284277/) |
+| Port | 通訊埠 | 亦作：連結埠、(a.) 實體的插孔或連接處<br>(b.) [網路通訊名詞](https://terms.naer.edu.tw/detail/1284277/) |
 | Portal | 入口 |   |
 | Postfix | 尾碼 | 留意「後綴」 |
 | Power Adapter | 電源供應器 | 不翻「電源適配器」、亦作：充電器、[adapter 與 charger 差異探討](https://www.etechnog.com/2019/06/difference-between-charger-adapter.html#:~:text=The%20charger%20is%20specially%20designed%20to%20charge%20a%20device%20such,power%20supply%20to%20a%20device.) |
@@ -232,6 +232,7 @@
 | Stack | 堆疊 | 不翻「堆棧」、一種先進後出的資料結構 |
 | String | 字串 | 不翻「字符串」、一串循序相連的字元 |
 | Structure | 結構 | 留意「結構體」、亦作：結構體、當描述事物的脈絡及操作的模式時，稱「結構」，如論文結構和資料結構。<br>當強調用某個識別符號來展現特定的資料集合時，稱「結構體」，如 Go、C、Rust 程式語言的 `struct` |
+| Submit | 送出 | 不翻「提交」 |
 | Subnet mask | 子網路遮罩 | 不翻「子網掩碼」、網路工程術語 |
 | Support | 支援（某功能） | 留意「支持」、此處「支援」的意涵為[牛津辭典](https://www.oxfordlearnersdictionaries.com/definition/english/support_1?q=support)第九點所述 |
 | System Crash | 系統當機（正規） | 不翻「死機」、亦作：死當（口語）、相關：Windows 的 BSOD, Unix-like 的 kernel panic |
