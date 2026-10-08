@@ -25,7 +25,7 @@ Run from the skill directory (zero dependencies; either `uv run python3` or bare
 
 ```bash
 uv run python3 scripts/bookstack-api-cli.py <resource> <action> [args] [flags]
-uv run python3 scripts/bookstack-api-cli.py -auth status
+uv run python3 scripts/bookstack-api-cli.py auth status
 uv run python3 scripts/bookstack-api-cli.py --help
 ```
 
@@ -41,19 +41,21 @@ Credentials are read only from environment variables; there are no credential fl
 export BOOKSTACK_URL="https://wiki.example.com"
 export BOOKSTACK_TOKEN_ID="..."
 export BOOKSTACK_TOKEN_SECRET="..."
-uv run python3 scripts/bookstack-api-cli.py -auth status   # offline check {"ready": bool, "missing": [...]}
-uv run python3 scripts/bookstack-api-cli.py -auth login    # GET /api/system validation; prints system JSON on success
+uv run python3 scripts/bookstack-api-cli.py auth status   # offline check {"ready": bool, "missing": [...]}
+uv run python3 scripts/bookstack-api-cli.py auth check    # GET /api/system validation; prints system JSON on success
 ```
 
 - API Tokens can only be created in the BookStack Web UI (profile → API Tokens); the Token Secret is shown only once.
 - Every request carries `Authorization: Token <token_id>:<token_secret>`; 401/403 always exit 3.
-- `-auth logout` only prints a JSON hint to unset the variables (the CLI keeps no local state); `auth` must not be used as a resource.
+- The CLI keeps no local state: there is no session, so there is no logout; unset the variables to log out.
+- `auth status` is an offline check (no HTTP); `auth check` verifies the credentials against `GET /api/system`.
 - Missing credentials when running a resource command: stderr error JSON, exit 3, no HTTP sent.
 
 ## Resources and actions
 
 | Resource | Actions | Notes |
 |---|---|---|
+| `auth` | `status` `check` | `status` is an offline env check; `check` validates against `GET /api/system`; no session, no logout |
 | `pages` | `list` `create` `read` `update` `delete` `export` | create's `--book-id`/`--chapter-id` and `--html`/`--markdown` are each either/or; export supports html/pdf/plaintext/markdown/zip |
 | `chapters` | `list` `create` `read` `update` `delete` `export` | create requires `--book-id` and `--name`; update with `--book-id` moves the chapter |
 | `books` | `list` `create` `read` `update` `delete` `export` | `--image @cover.png` uses multipart (pass `null` to remove the cover); delete moves to Recycle Bin |
@@ -71,8 +73,8 @@ uv run python3 scripts/bookstack-api-cli.py -auth login    # GET /api/system val
 | `audit-log` | `list` | requires manage-users and manage-settings permissions |
 | `content-permissions` | `read <type> <id>` `update <type> <id>` | `<type>` is one of page/book/chapter/bookshelf; full overwrite, no deep merge |
 
-There is also `docs` (defaults to `GET /api/docs.json`; `--html` switches to `/api/docs`) and
-`-auth login|status|logout`. For the full flags of each resource, `<resource> <action> --help` is the source of truth.
+There is also `docs` (defaults to `GET /api/docs.json`; `--html` switches to `/api/docs`).
+For the full flags of each resource, `<resource> <action> --help` is the source of truth.
 
 ## I/O and exit code contract
 

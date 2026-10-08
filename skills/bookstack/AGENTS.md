@@ -20,7 +20,7 @@ uv run python3 -m unittest test_exit_codes
 
 # CLI smoke test
 uv run python3 scripts/bookstack-api-cli.py --help
-uv run python3 scripts/bookstack-api-cli.py -auth status
+uv run python3 scripts/bookstack-api-cli.py auth status
 ```
 
 - Tests are driven by `tests/cli_harness.py`: the only seam is the module-level `transport(request)`.

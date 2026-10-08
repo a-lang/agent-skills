@@ -14,13 +14,13 @@
 
 ```
 bookstack-api-cli.py <resource> <action> [args] [flags]
-bookstack-api-cli.py -auth login|status|logout
 bookstack-api-cli.py --help
 ```
 
 - Positional `<resource>`/`<action>` map to REST resources and actions; all `--xxx` double-dash flags are
   reserved for REST parameters.
-- `-auth` is a single-dash meta flag (a CLI-internal operation, not a REST resource); `auth` must not be used as a resource.
+- `auth` is a local (non-REST) resource with `status` (offline env check) and `check`
+  (live `GET /api/system` validation); it follows the same `<resource> <action>` grammar.
 - `--help` (including per resource/action) prints to stdout and exits 0; unknown resource/action or argument
   errors go to stderr and exit 2. Help text is generated from the command spec table and never diverges from actual parsing.
 
@@ -68,10 +68,11 @@ The full actions of the 16 resources are in `SKILL.md`'s "Resources and actions"
   no credential flags, nothing written to disk.
 - The request header is always `Authorization: Token <token_id>:<token_secret>`;
   no session cookie or Basic.
-- `-auth login`: missing env or `GET /api/system` failure → stderr error JSON, exit 3;
+- `auth check`: missing env or `GET /api/system` failure → stderr error JSON, exit 3;
   success → stdout system JSON, exit 0.
-- `-auth status`: purely offline check; stdout `{"ready": bool, "missing": [...]}`; exit 0/3.
-- `-auth logout`: the CLI has no local state; stdout prints a JSON hint to unset the variables, exit 0.
+- `auth status`: purely offline check; stdout `{"ready": bool, "missing": [...]}`; exit 0/3.
+- The CLI keeps no local state: there is no session and no logout; unset the
+  variables to log out. `auth --help` documents both actions.
 
 ## stdout/stderr/exit codes
 
@@ -118,8 +119,8 @@ The full actions of the 16 resources are in `SKILL.md`'s "Resources and actions"
 CLI="uv run python3 scripts/bookstack-api-cli.py"
 
 # Offline credential check / connection validation
-$CLI -auth status
-$CLI -auth login | jq .version
+$CLI auth status
+$CLI auth check | jq .version
 
 # Listing with server-side filtering (no automatic pagination)
 $CLI books list --count 50 --filter name:like=%api% --sort -created_at | jq .total

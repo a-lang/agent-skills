@@ -12,6 +12,7 @@ from cli_harness import RecordingTransport, load_cli, run
 ERROR_BODY = b'{"error":{"code":401,"message":"No authorization token found"}}'
 
 RESOURCES = (
+    "auth",
     "pages",
     "chapters",
     "books",
@@ -121,8 +122,13 @@ class UsageErrorTest(unittest.TestCase):
     def test_unknown_resource(self):
         self.assert_usage_error(["widgets", "list"])
 
-    def test_auth_is_not_a_resource(self):
-        self.assert_usage_error(["auth", "status"])
+    def test_auth_is_a_resource_and_dash_auth_is_rejected(self):
+        self.assert_usage_error(["-auth", "status"])
+        cli = load_cli()
+        transport = RecordingTransport()
+        result = run(cli, ["auth", "status"], transport=transport)
+        self.assertEqual(0, result.code)
+        self.assertEqual([], transport.requests)
 
     def test_unknown_action(self):
         self.assert_usage_error(["pages", "archive", "1"])
@@ -203,10 +209,10 @@ class UsageErrorTest(unittest.TestCase):
         self.assert_usage_error(["docs", "--bogus"])
 
     def test_auth_unknown_command(self):
-        self.assert_usage_error(["-auth", "bogus"])
+        self.assert_usage_error(["auth", "bogus"])
 
     def test_auth_extra_argument(self):
-        self.assert_usage_error(["-auth", "status", "extra"])
+        self.assert_usage_error(["auth", "status", "extra"])
 
     def test_json_non_object_body(self):
         cli = load_cli()
@@ -232,7 +238,7 @@ class HelpTest(unittest.TestCase):
         text = result.stdout.decode("utf-8")
         for resource in RESOURCES:
             self.assertIn(resource, text)
-        self.assertIn("-auth", text)
+        self.assertIn("status | check", text)
         self.assertIn("docs", text)
         self.assertEqual([], transport.requests)
 
@@ -275,7 +281,7 @@ class HelpTest(unittest.TestCase):
         for argv, needle in (
             (["system", "--help"], "/api/system"),
             (["docs", "--help"], "/api/docs.json"),
-            (["-auth", "--help"], "login"),
+            (["auth", "--help"], "check"),
         ):
             with self.subTest(argv=argv):
                 result = run(cli, argv, env={})

@@ -4,7 +4,6 @@
 
 Grammar:
     bookstack-api-cli.py <resource> <action> [args] [flags]
-    bookstack-api-cli.py -auth login|status|logout
     bookstack-api-cli.py --help
 
 The single seam is the module-level ``transport(request)`` function: it takes
@@ -30,6 +29,7 @@ ENV_TOKEN_SECRET = "BOOKSTACK_TOKEN_SECRET"
 ENV_NAMES = (ENV_URL, ENV_TOKEN_ID, ENV_TOKEN_SECRET)
 
 RESOURCE_ORDER = (
+    "auth",
     "pages",
     "chapters",
     "books",
@@ -881,44 +881,22 @@ def auth_status(out):
     return 0 if not missing else 3
 
 
-def auth_login(out, err):
+def auth_check(out, err):
     return execute("GET", "/api/system", None, out, err, failure_code=3)
-
-
-def auth_logout(out):
-    payload = {
-        "logged_out": True,
-        "unset": list(ENV_NAMES),
-        "message": "BookStack CLI stores no credentials; unset these environment variables to log out.",
-    }
-    out.write(json.dumps(payload, ensure_ascii=False).encode("utf-8") + b"\n")
-    return 0
 
 
 def auth_command(args, out, err):
     if not args or args[0] in ("--help", "-h"):
-        out.write(auth_help().encode("utf-8"))
+        out.write(resource_help("auth").encode("utf-8"))
         return 0
     command = args[0]
-    if command not in ("login", "status", "logout"):
-        raise UsageError("unknown -auth command: %s" % command)
+    if command not in ("status", "check"):
+        raise UsageError("unknown action for auth: %s" % command)
     if len(args) > 1:
-        raise UsageError("unexpected argument for -auth %s: %s" % (command, args[1]))
+        raise UsageError("unexpected argument for auth %s: %s" % (command, args[1]))
     if command == "status":
         return auth_status(out)
-    if command == "login":
-        return auth_login(out, err)
-    return auth_logout(out)
-
-
-def auth_help():
-    return (
-        "usage: bookstack-api-cli.py -auth login|status|logout\n"
-        "\n"
-        "  login   verify env credentials against GET /api/system\n"
-        "  status  offline credentials check: {\"ready\": bool, \"missing\": [...]}\n"
-        "  logout  print hint for unsetting the credentials (no local state)\n"
-    )
+    return auth_check(out, err)
 
 
 def metavar(field):
@@ -1065,6 +1043,18 @@ def resource_help(resource):
     if resource == "system":
         lines.append("  GET /api/system")
         return "\n".join(lines) + "\n"
+    if resource == "auth":
+        lines.extend(
+            [
+                "actions:",
+                '  status   offline check: {"ready": bool, "missing": [...]} (no HTTP)',
+                "  check    verify credentials with GET /api/system",
+                "",
+                "Credentials come only from BOOKSTACK_URL, BOOKSTACK_TOKEN_ID and",
+                "BOOKSTACK_TOKEN_SECRET; nothing is stored. Unset them to log out.",
+            ]
+        )
+        return "\n".join(lines) + "\n"
     actions = ACTIONS.get(resource, {})
     if not actions:
         lines.append("  no actions available in this build")
@@ -1079,7 +1069,6 @@ def resource_help(resource):
 def top_help():
     lines = [
         USAGE_LINE,
-        "       bookstack-api-cli.py -auth login|status|logout",
         "       bookstack-api-cli.py --help",
         "",
         "BookStack REST API thin CLI: 2xx responses are written to stdout as-is,",
@@ -1089,7 +1078,9 @@ def top_help():
         "resources:",
     ]
     for resource in RESOURCE_ORDER:
-        if resource == "system":
+        if resource == "auth":
+            lines.append("  %-20s %s" % (resource, "status | check"))
+        elif resource == "system":
             lines.append("  %-20s GET /api/system" % resource)
         elif resource in ACTIONS and ACTIONS[resource]:
             lines.append(
@@ -1102,7 +1093,6 @@ def top_help():
             "",
             "commands:",
             "  %-20s %s" % ("docs", "GET /api/docs.json (--html for /api/docs)"),
-            "  %-20s %s" % ("-auth", "login | status | logout"),
             "",
             "exit codes:",
             "  0  success (2xx, including 204)",
@@ -1628,6 +1618,8 @@ def run_resource(resource, args, out, err):
         if len(args) > 1:
             raise UsageError("unknown action for system: %s" % args[1])
         return execute("GET", "/api/system", None, out, err)
+    if resource == "auth":
+        return auth_command(args[1:], out, err)
     return run_action(resource, args, out, err)
 
 
@@ -1641,12 +1633,10 @@ def main(argv=None):
         if args[0] in ("--help", "-h"):
             out.write(top_help().encode("utf-8"))
             return 0
-        if args[0] == "-auth":
-            return auth_command(args[1:], out, err)
         if args[0] == "docs":
             return run_docs(args, out, err)
         resource = args[0]
-        if resource == "auth" or resource not in RESOURCE_ORDER:
+        if resource not in RESOURCE_ORDER:
             raise UsageError("unknown resource: %s" % resource)
         return run_resource(resource, args, out, err)
     except UsageError as error:

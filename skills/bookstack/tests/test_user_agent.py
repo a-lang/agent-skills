@@ -57,10 +57,10 @@ class UserAgentTest(unittest.TestCase):
         self.assertEqual(0, result.code)
         self.assert_user_agent(transport.requests[0])
 
-    def test_auth_login_carries_user_agent(self):
+    def test_auth_check_carries_user_agent(self):
         cli = load_cli()
         transport = RecordingTransport([(200, {}, b'{"version":"v24.05"}')])
-        result = run(cli, ["-auth", "login"], transport=transport)
+        result = run(cli, ["auth", "check"], transport=transport)
         self.assertEqual(0, result.code)
         self.assert_user_agent(transport.requests[0])
 

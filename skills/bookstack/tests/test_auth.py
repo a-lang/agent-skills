@@ -1,4 +1,4 @@
-"""-auth login|status|logout behavior (env-only credentials, zero local state)."""
+"""auth status|check behavior (env-only credentials, zero local state)."""
 
 import json
 import unittest
@@ -11,7 +11,7 @@ class AuthStatusTest(unittest.TestCase):
     def test_status_ready_exits_0_without_http(self):
         cli = load_cli()
         transport = RecordingTransport()
-        result = run(cli, ["-auth", "status"], transport=transport)
+        result = run(cli, ["auth", "status"], transport=transport)
         self.assertEqual(0, result.code)
         self.assertEqual({"ready": True, "missing": []}, json.loads(result.stdout))
         self.assertEqual([], transport.requests)
@@ -21,7 +21,7 @@ class AuthStatusTest(unittest.TestCase):
         transport = RecordingTransport()
         result = run(
             cli,
-            ["-auth", "status"],
+            ["auth", "status"],
             env={"BOOKSTACK_TOKEN_ID": "tok-id"},
             transport=transport,
         )
@@ -36,7 +36,7 @@ class AuthStatusTest(unittest.TestCase):
         cli = load_cli()
         result = run(
             cli,
-            ["-auth", "status"],
+            ["auth", "status"],
             env={**ENV, "BOOKSTACK_TOKEN_SECRET": ""},
         )
         self.assertEqual(3, result.code)
@@ -46,11 +46,11 @@ class AuthStatusTest(unittest.TestCase):
         )
 
 
-class AuthLoginTest(unittest.TestCase):
-    def test_login_success_prints_system_json_and_exits_0(self):
+class AuthCheckTest(unittest.TestCase):
+    def test_check_success_prints_system_json_and_exits_0(self):
         cli = load_cli()
         transport = RecordingTransport([(200, {}, b'{"version":"v24.05"}')])
-        result = run(cli, ["-auth", "login"], transport=transport)
+        result = run(cli, ["auth", "check"], transport=transport)
         self.assertEqual(0, result.code)
         self.assertEqual(b'{"version":"v24.05"}\n', result.stdout)
         self.assertEqual(b"", result.stderr)
@@ -60,12 +60,12 @@ class AuthLoginTest(unittest.TestCase):
         self.assertEqual("https://wiki.example.com/api/system", request.url)
         self.assertEqual("Token tok-id:tok-secret", request.headers["Authorization"])
 
-    def test_login_missing_env_exits_3_without_http(self):
+    def test_check_missing_env_exits_3_without_http(self):
         cli = load_cli()
         transport = RecordingTransport()
         result = run(
             cli,
-            ["-auth", "login"],
+            ["auth", "check"],
             env={"BOOKSTACK_URL": "https://wiki.example.com"},
             transport=transport,
         )
@@ -76,19 +76,19 @@ class AuthLoginTest(unittest.TestCase):
         self.assertIn("BOOKSTACK_TOKEN_SECRET", payload["error"]["message"])
         self.assertEqual([], transport.requests)
 
-    def test_login_api_failure_passes_error_json_to_stderr_and_exits_3(self):
+    def test_check_api_failure_passes_error_json_to_stderr_and_exits_3(self):
         cli = load_cli()
         error_body = b'{"error":{"code":401,"message":"No authorization token found"}}'
         transport = RecordingTransport([(401, {}, error_body)])
-        result = run(cli, ["-auth", "login"], transport=transport)
+        result = run(cli, ["auth", "check"], transport=transport)
         self.assertEqual(3, result.code)
         self.assertEqual(b"", result.stdout)
         self.assertEqual(error_body, result.stderr)
 
-    def test_login_network_failure_exits_3(self):
+    def test_check_network_failure_exits_3(self):
         cli = load_cli()
         transport = RecordingTransport([urllib.error.URLError("no route to host")])
-        result = run(cli, ["-auth", "login"], transport=transport)
+        result = run(cli, ["auth", "check"], transport=transport)
         self.assertEqual(3, result.code)
         self.assertEqual(b"", result.stdout)
         self.assertIn(b"no route to host", result.stderr)
@@ -101,16 +101,22 @@ class AuthLoginTest(unittest.TestCase):
         self.assertEqual([], transport.requests)
 
 
-class AuthLogoutTest(unittest.TestCase):
-    def test_logout_prints_unset_hint_and_exits_0_without_http(self):
+class AuthRemovedCommandsTest(unittest.TestCase):
+    def test_logout_is_rejected_as_unknown_action(self):
         cli = load_cli()
         transport = RecordingTransport()
-        result = run(cli, ["-auth", "logout"], transport=transport)
-        self.assertEqual(0, result.code)
-        self.assertEqual(b"", result.stderr)
+        result = run(cli, ["auth", "logout"], transport=transport)
+        self.assertEqual(2, result.code)
+        self.assertEqual(b"", result.stdout)
         self.assertEqual([], transport.requests)
-        payload = json.loads(result.stdout)
-        self.assertEqual(["BOOKSTACK_URL", "BOOKSTACK_TOKEN_ID", "BOOKSTACK_TOKEN_SECRET"], payload["unset"])
+
+    def test_auth_help_lists_status_and_check(self):
+        cli = load_cli()
+        result = run(cli, ["auth", "--help"], env={})
+        self.assertEqual(0, result.code)
+        text = result.stdout.decode("utf-8")
+        self.assertIn("status", text)
+        self.assertIn("check", text)
 
 
 if __name__ == "__main__":
