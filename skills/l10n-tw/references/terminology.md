@@ -245,6 +245,7 @@
 | Threshold | 門檻值 | 留意「閾值」 |
 | through / via | 透過 | 留意「通過」(通過=pass exam) |
 | thumbnail | 縮圖 |  |
+| ticket | 工單 | 對應「ticket」留意「票」，例如 Customer Service Ticket：客戶服務工單 |
 | tooltip | 工具提示 |  |
 | Touch Screen | 觸控螢幕 |  |
 | Traverse | 走訪 | 不翻「遍歷」 |

@@ -7,8 +7,8 @@
 
 | 技能      | 說明                         | 目錄                |
 | ------- | -------------------------- | ----------------- |
-| l10n-tw | 正體中文（zh-TW）在地化             | `skills/l10n-tw/` |
-| bookstack | BookStack Wiki REST API 操作 | `skills/bookstack/` |
+| l10n-tw | 正體中文（zh-TW）在地化             | [skills/l10n-tw/](skills/l10n-tw/) |
+| bookstack | BookStack Wiki REST API 操作 | [skills/bookstack/](skills/bookstack/) |
 
 
 ## 快速安裝
