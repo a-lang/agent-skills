@@ -86,12 +86,13 @@ class UsersCreateTest(unittest.TestCase):
                 "users", "create",
                 "--name", "Barry Scott",
                 "--email", "barry@example.com",
-                "--password", "hunter2secret",
+                "--password-stdin",
                 "--send-invite", "true",
                 "--roles", "1,2",
                 "--language", "en",
                 "--external-auth-id", "saml-barry",
             ],
+            stdin=b"hunter2secret\n",
             transport=transport,
         )
         self.assertEqual(0, result.code, result.stderr)
@@ -187,6 +188,49 @@ class UsersCreateTest(unittest.TestCase):
             {"name": "Barry", "email": "overridden@example.com"},
             json.loads(transport.requests[0].body.decode("utf-8")),
         )
+
+    def test_password_stdin_reads_the_password_from_stdin(self):
+        cli = load_cli()
+        transport = RecordingTransport([(200, {}, b'{"id":4}')])
+        result = run(
+            cli,
+            ["users", "update", "4", "--password-stdin"],
+            stdin=b"newsecret\n",
+            transport=transport,
+        )
+        self.assertEqual(0, result.code, result.stderr)
+        self.assertEqual(
+            {"password": "newsecret"},
+            json.loads(transport.requests[0].body.decode("utf-8")),
+        )
+
+    def test_password_stdin_conflicts_with_json_stdin(self):
+        for argv in (
+            ["users", "update", "4", "--json", "-", "--password-stdin"],
+            ["users", "update", "4", "--password-stdin", "--json", "-"],
+        ):
+            with self.subTest(argv=argv):
+                cli = load_cli()
+                transport = RecordingTransport()
+                result = run(cli, argv, stdin=b'{"name":"x"}', transport=transport)
+                self.assertEqual(2, result.code)
+                self.assertEqual([], transport.requests)
+
+    def test_removed_password_flag_is_rejected(self):
+        cli = load_cli()
+        transport = RecordingTransport()
+        result = run(
+            cli,
+            [
+                "users", "create",
+                "--name", "Barry",
+                "--email", "barry@example.com",
+                "--password", "hunter2secret",
+            ],
+            transport=transport,
+        )
+        self.assertEqual(2, result.code)
+        self.assertEqual([], transport.requests)
 
 
 class UsersReadTest(unittest.TestCase):
@@ -401,7 +445,7 @@ class UsersHelpTest(unittest.TestCase):
         self.assertIn("--name TEXT", text)
         self.assertIn("--email TEXT", text)
         for flag in (
-            "--password",
+            "--password-stdin",
             "--send-invite",
             "--roles",
             "--language",

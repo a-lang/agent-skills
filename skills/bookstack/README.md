@@ -185,7 +185,7 @@ When unsure about flags, ask the CLI first: `<resource> --help` and `<resource> 
 | `imports` | `upload` `run` `read` `list` `delete` | two-phase: `upload <zip>`, then `run <id>` |
 | `recycle-bin` | `list` `restore` `destroy` | `destroy` requires `--yes`, irreversible |
 | `roles` | `list` `create` `read` `update` `delete` | `--permissions` replaces the whole set |
-| `users` | `list` `create` `read` `update` `delete` | `delete` requires `--yes` |
+| `users` | `list` `create` `read` `update` `delete` | `delete` requires `--yes`; passwords via `--password-stdin` |
 | `search` | `all` `book` `chapter` | paginate with `--page`/`--count` (not offset) |
 | `tags` | `names` `values` | filter supports only `name`/`value` |
 | `system` | (no actions) | `GET /api/system` for version/base_url |
@@ -197,8 +197,8 @@ Plus `docs` (defaults to `GET /api/docs.json`; `--html` switches to `/api/docs`)
 ### I/O and exit codes
 
 - 2xx: stdout passes the API response bytes through unchanged (plus one `\n` if missing); 204 produces no output.
-- Non-2xx: stdout stays empty; stderr prints the API error JSON unchanged.
-- Streaming endpoints (`export`, `image-gallery data`): raw bytes to stdout, or to file with `-o FILE` (stdout then prints `{"saved_to": "<path>"}`).
+- Non-2xx: stdout stays empty; stderr prints the API error JSON unchanged (non-JSON bodies are wrapped as JSON).
+- Streaming endpoints (`export`, `image-gallery data`): raw bytes to stdout, or to file with `-o FILE` (stdout then prints `{"saved_to": "<path>"}`). `-o` refuses to overwrite an existing file unless `--force` is given; new files are `0600`.
 
 | Exit code | Meaning |
 |---|---|
@@ -210,8 +210,9 @@ Plus `docs` (defaults to `GET /api/docs.json`; `--html` switches to `/api/docs`)
 | 6 | Rate-limit retries exhausted (429) |
 | 7 | Network/timeout/TLS |
 | 8 | Server error (5xx) |
+| 9 | Unexpected redirect (3xx) |
 
-Only 429 is retried (1s/2s/4s backoff, max 3 retries); all other errors fail fast. No automatic pagination — the agent loops with `--count`/`--offset` using the response's `total`. Timeout is fixed at 30s; TLS verification is always on.
+Only 429 is retried (1s/2s/4s backoff, max 3 retries, `Retry-After` capped at 60s); all other errors fail fast. No automatic pagination — the agent loops with `--count`/`--offset` using the response's `total`. Timeout is fixed at 30s; TLS verification is always on. Optional env vars: `BOOKSTACK_ALLOW_INSECURE=1` (permit plain http), `BOOKSTACK_FILE_ROOT` (confine `@file` reads), `BOOKSTACK_DEBUG=1` (traceback on unexpected errors).
 
 ## Development
 

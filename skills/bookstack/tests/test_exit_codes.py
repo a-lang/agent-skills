@@ -1,4 +1,4 @@
-"""Exit code matrix (0/2/3/4/5/6/7/8), usage errors and --help text."""
+"""Exit code matrix (0/2/3/4/5/6/7/8/9), usage errors and --help text."""
 
 import json
 import shutil
@@ -99,6 +99,70 @@ class HttpErrorMappingTest(unittest.TestCase):
         self.assertEqual(b"", result.stdout)
         self.assertIn("BOOKSTACK_URL", json.loads(result.stderr)["error"]["message"])
         self.assertEqual([], transport.requests)
+
+
+class RedirectStatusTest(unittest.TestCase):
+    def test_unhandled_3xx_maps_to_9(self):
+        for status in (300, 301, 302, 304, 307, 308):
+            with self.subTest(status=status):
+                cli = load_cli()
+                transport = RecordingTransport([(status, {}, b'{"moved":true}')])
+                result = run(cli, ["system"], transport=transport)
+                self.assertEqual(9, result.code)
+                self.assertEqual(b"", result.stdout)
+                self.assertEqual(b'{"moved":true}', result.stderr)
+
+
+class NonJsonErrorBodyTest(unittest.TestCase):
+    def test_non_json_body_is_wrapped_as_error_json(self):
+        cli = load_cli()
+        transport = RecordingTransport([(500, {}, b"<html>boom</html>")])
+        result = run(cli, ["system"], transport=transport)
+        self.assertEqual(8, result.code)
+        self.assertEqual(b"", result.stdout)
+        payload = json.loads(result.stderr)
+        self.assertIn("non-JSON", payload["error"]["message"])
+
+    def test_empty_3xx_body_becomes_error_json(self):
+        cli = load_cli()
+        transport = RecordingTransport([(304, {}, b"")])
+        result = run(cli, ["system"], transport=transport)
+        self.assertEqual(9, result.code)
+        json.loads(result.stderr)
+
+    def test_valid_json_error_body_passes_through_unchanged(self):
+        cli = load_cli()
+        transport = RecordingTransport([(409, {}, ERROR_BODY)])
+        result = run(cli, ["system"], transport=transport)
+        self.assertEqual(5, result.code)
+        self.assertEqual(ERROR_BODY, result.stderr)
+
+
+class UnexpectedErrorTest(unittest.TestCase):
+    def test_unexpected_exception_becomes_structured_json_exit_7(self):
+        cli = load_cli()
+        transport = RecordingTransport([ValueError("boom")])
+        result = run(cli, ["system"], transport=transport)
+        self.assertEqual(7, result.code)
+        self.assertEqual(b"", result.stdout)
+        payload = json.loads(result.stderr)
+        self.assertIn("boom", payload["error"]["message"])
+
+    def test_debug_env_reraises_for_traceback(self):
+        cli = load_cli()
+        transport = RecordingTransport([ValueError("boom")])
+        with self.assertRaises(ValueError):
+            run(
+                cli,
+                ["system"],
+                env={
+                    "BOOKSTACK_URL": "https://wiki.example.com",
+                    "BOOKSTACK_TOKEN_ID": "tok-id",
+                    "BOOKSTACK_TOKEN_SECRET": "tok-secret",
+                    "BOOKSTACK_DEBUG": "1",
+                },
+                transport=transport,
+            )
 
 
 class UsageErrorTest(unittest.TestCase):
@@ -257,6 +321,7 @@ class HelpTest(unittest.TestCase):
             "6  rate limit",
             "7  network",
             "8  server error",
+            "9  unexpected redirect",
         ):
             self.assertIn(line, text)
 

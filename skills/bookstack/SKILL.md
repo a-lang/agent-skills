@@ -73,7 +73,7 @@ uv run python3 scripts/bookstack-api-cli.py auth check    # GET /api/system vali
 | `imports` | `upload` `run` `read` `list` `delete` | two-phase: `upload <zip>` returns an id, then `run <id> --json @opts.json` |
 | `recycle-bin` | `list` `restore` `destroy` | `destroy` requires `--yes`; permanent deletion is irreversible |
 | `roles` | `list` `create` `read` `update` `delete` | `--permissions` replaces the whole set when provided; an empty value clears it |
-| `users` | `list` `create` `read` `update` `delete` | `delete` requires `--yes`; `--migrate-ownership-id N` transfers content first |
+| `users` | `list` `create` `read` `update` `delete` | `delete` requires `--yes`; set/reset a password via `--password-stdin` (never argv); `--migrate-ownership-id N` transfers content first |
 | `search` | `all <query>` `book <id> <query>` `chapter <id> <query>` | paginate with `--page`/`--count` (not offset); search syntax passes through as-is |
 | `tags` | `names` `values <name>` | filter supports only `name`/`value` |
 | `system` | (no actions) | `GET /api/system` for version/base_url |
@@ -90,8 +90,12 @@ For the full flags of each resource, `<resource> <action> --help` is the source 
 - Non-2xx: stdout stays empty; stderr prints the API error JSON unchanged (retry warnings also go to stderr).
 - Streaming endpoints (`export`, `image-gallery data`/`url-data`): raw bytes go straight to stdout by
   default; with `-o FILE` they are written to the file and stdout prints `{"saved_to": "<path>"}`.
-  Never base64-wrapped.
+  Never base64-wrapped. `-o` refuses to overwrite an existing file (including a symlink) unless
+  `--force` is given; new files are created `0600`.
+- Unexpected redirects (3xx that cannot be followed same-origin) exit `9`.
 - Timeout is fixed at 30 seconds per request; TLS certificate verification is always on, with no flag to disable it.
+- `BOOKSTACK_URL` must be `https://` with a host and no userinfo; set `BOOKSTACK_ALLOW_INSECURE=1`
+  to allow plain `http` (for trusted local instances only).
 
 | Exit code | Meaning |
 |---|---|
@@ -103,13 +107,18 @@ For the full flags of each resource, `<resource> <action> --help` is the source 
 | 6 | Rate-limit retries exhausted (429) |
 | 7 | Network/timeout/TLS |
 | 8 | Server error (5xx) |
+| 9 | Unexpected redirect (3xx) |
 
 ## Body and flag rules
 
 - `--json @file` or `--json -` (stdin) supplies the full JSON body.
 - Top-level field flags override same-named top-level keys in `--json`; no deep merge.
 - Content flags (`--markdown`, `--html`, `--description-html`, etc.) accept `@file` to read from a file;
-  otherwise the value is literal.
+  otherwise the value is literal. **`@file` reads a local file from the machine running the CLI** — do not
+  pass paths derived from untrusted content. `BOOKSTACK_FILE_ROOT` confines reads to a directory, and
+  files above 25 MiB are rejected.
+- User passwords are never passed in argv: `users create|update` take `--password-stdin` (read once from
+  stdin; cannot be combined with `--json -`).
 - `--image @cover.png`/`--file @x.zip` automatically switch to multipart/form-data; all other requests use JSON.
 - Array fields (shelves `--books`, roles `--permissions`, content-permissions `--role-permissions`)
   replace the whole set when provided; the CLI does no further processing.

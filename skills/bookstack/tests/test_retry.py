@@ -54,6 +54,20 @@ class RetryTest(unittest.TestCase):
         self.assertEqual(0, result.code)
         self.assertEqual(1, sleeper.call_args.args[0])
 
+    def test_huge_retry_after_is_capped(self):
+        cli = load_cli()
+        transport = RecordingTransport(
+            [
+                (429, {"Retry-After": "100000"}, RATE_BODY),
+                (200, {}, b"{}"),
+            ]
+        )
+        with mock.patch("time.sleep") as sleeper:
+            result = run(cli, ["system"], transport=transport)
+        self.assertEqual(0, result.code)
+        self.assertEqual(60, sleeper.call_args.args[0])
+        self.assertIn(b"capped", result.stderr)
+
     def test_exhausted_429_uses_backoff_1_2_4_and_exits_6(self):
         cli = load_cli()
         transport = RecordingTransport([(429, {}, RATE_BODY)] * 4)

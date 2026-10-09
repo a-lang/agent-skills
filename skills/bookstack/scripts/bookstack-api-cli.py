@@ -52,6 +52,16 @@ USAGE_LINE = "usage: bookstack-api-cli.py <resource> <action> [args] [flags]"
 TIMEOUT_SECONDS = 30
 MAX_RETRIES = 3
 BACKOFF_SECONDS = (1, 2, 4)
+MAX_RETRY_AFTER = 60
+MAX_FILE_BYTES = 25 * 1024 * 1024
+
+ENV_ALLOW_INSECURE = "BOOKSTACK_ALLOW_INSECURE"
+ENV_FILE_ROOT = "BOOKSTACK_FILE_ROOT"
+ENV_DEBUG = "BOOKSTACK_DEBUG"
+
+# Delete C0 control bytes (except TAB and LF) and DEL from text output; bytes
+# 0x80-0x9f are left intact because they are valid UTF-8 continuation bytes.
+_CONTROL_BYTES = bytes(b for b in range(0x20) if b not in (0x09, 0x0A)) + b"\x7f"
 
 # WAFs block urllib's default UA (Python-urllib/x.y) with 403/1010.
 # Version is hardcoded for now; aligning it with the SKILL version strategy is TBD.
@@ -65,6 +75,7 @@ JSON_VALUE = "JSON"
 CONTENT = "CONTENT"
 FILE = "FILE"
 BOOLEAN = "BOOLEAN"
+STDIN = "STDIN"
 
 QUERY_FIELDS = (
     ("count", "count", INTEGER),
@@ -173,7 +184,7 @@ ROLE_BODY = (
 USER_CREATE_BODY = (
     {"flag": "name", "key": "name", "kind": STRING},
     {"flag": "email", "key": "email", "kind": STRING},
-    {"flag": "password", "key": "password", "kind": STRING},
+    {"flag": "password-stdin", "key": "password", "kind": STDIN},
     {"flag": "send-invite", "key": "send_invite", "kind": BOOLEAN},
     {"flag": "roles", "key": "roles", "kind": INTEGER_LIST},
     {"flag": "language", "key": "language", "kind": STRING},
@@ -183,7 +194,7 @@ USER_CREATE_BODY = (
 USER_UPDATE_BODY = (
     {"flag": "name", "key": "name", "kind": STRING},
     {"flag": "email", "key": "email", "kind": STRING},
-    {"flag": "password", "key": "password", "kind": STRING},
+    {"flag": "password-stdin", "key": "password", "kind": STDIN},
     {"flag": "roles", "key": "roles", "kind": INTEGER_LIST},
     {"flag": "language", "key": "language", "kind": STRING},
     {"flag": "external-auth-id", "key": "external_auth_id", "kind": STRING},
@@ -742,15 +753,38 @@ class Request(NamedTuple):
     body: Optional[bytes]
 
 
+def _origin_of(url):
+    parts = urllib.parse.urlsplit(url)
+    return (parts.scheme, parts.hostname, parts.port)
+
+
+class _SameOriginRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse redirects that leave the configured origin, so the Authorization
+    header is never replayed to a different host."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        new_request = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new_request is None:
+            return None
+        if _origin_of(new_request.full_url) != _origin_of(req.full_url):
+            raise urllib.error.HTTPError(
+                req.full_url, code, "cross-origin redirect refused", headers, fp
+            )
+        return new_request
+
+
+_OPENER = urllib.request.build_opener(
+    urllib.request.HTTPSHandler(context=ssl.create_default_context()),
+    _SameOriginRedirect,
+)
+
+
 def transport(request):
     url_request = urllib.request.Request(
         request.url, data=request.body, headers=request.headers, method=request.method
     )
-    context = ssl.create_default_context()
     try:
-        with urllib.request.urlopen(
-            url_request, timeout=TIMEOUT_SECONDS, context=context
-        ) as response:
+        with _OPENER.open(url_request, timeout=TIMEOUT_SECONDS) as response:
             return response.status, dict(response.headers), response.read()
     except urllib.error.HTTPError as error:
         return error.code, dict(error.headers), error.read()
@@ -769,7 +803,18 @@ def base_headers():
 
 
 def api_url(path):
-    return os.environ[ENV_URL].rstrip("/") + path
+    raw = os.environ[ENV_URL]
+    parts = urllib.parse.urlsplit(raw)
+    if parts.scheme != "https" and os.environ.get(ENV_ALLOW_INSECURE) != "1":
+        raise UsageError(
+            "BOOKSTACK_URL must use https:// "
+            "(set %s=1 to allow plain http)" % ENV_ALLOW_INSECURE
+        )
+    if parts.username or parts.password:
+        raise UsageError("BOOKSTACK_URL must not contain userinfo (user:pass@)")
+    if not parts.hostname:
+        raise UsageError("BOOKSTACK_URL must include a host")
+    return raw.rstrip("/") + path
 
 
 def error_json(message):
@@ -786,6 +831,8 @@ def exit_code_for(status):
         return 5
     if status == 429:
         return 6
+    if 300 <= status < 400:
+        return 9
     if 400 <= status < 500:
         return 5
     if status >= 500:
@@ -793,10 +840,20 @@ def exit_code_for(status):
     return 2
 
 
+def error_body(status, body):
+    if body:
+        try:
+            json.loads(body)
+            return body
+        except (ValueError, UnicodeDecodeError):
+            pass
+    return error_json("%d non-JSON response from server" % status)
+
+
 def write_success(out, body):
     if not body:
         return
-    out.write(body)
+    out.write(body.translate(None, _CONTROL_BYTES))
     if not body.endswith(b"\n"):
         out.write(b"\n")
 
@@ -820,15 +877,30 @@ def request_with_retry(request, err):
         if status != 429 or attempt == MAX_RETRIES:
             return status, headers, body
         delay = retry_delay(headers, BACKOFF_SECONDS[attempt])
+        capped = min(delay, MAX_RETRY_AFTER)
+        note = " (capped from %ss)" % delay if capped != delay else ""
         err.write(
             (
-                "429 rate limited; retrying in %ss (attempt %d/%d)\n"
-                % (delay, attempt + 1, MAX_RETRIES)
+                "429 rate limited; retrying in %ss%s (attempt %d/%d)\n"
+                % (capped, note, attempt + 1, MAX_RETRIES)
             ).encode("utf-8")
         )
         err.flush()
-        time.sleep(delay)
+        time.sleep(capped)
     raise AssertionError("unreachable")
+
+
+def write_output(path, data, force):
+    flags = os.O_WRONLY | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    flags |= os.O_TRUNC if force else os.O_EXCL
+    fd = os.open(path, flags, 0o600)
+    try:
+        handle = os.fdopen(fd, "wb")
+    except BaseException:
+        os.close(fd)
+        raise
+    with handle:
+        handle.write(data)
 
 
 def execute(
@@ -841,6 +913,7 @@ def execute(
     stream=False,
     output_path=None,
     content_type=None,
+    force=False,
 ):
     missing = missing_env()
     if missing:
@@ -858,8 +931,15 @@ def execute(
     if 200 <= status < 300:
         if output_path is not None:
             try:
-                with open(output_path, "wb") as handle:
-                    handle.write(response_body)
+                write_output(output_path, response_body, force)
+            except FileExistsError:
+                err.write(
+                    error_json(
+                        "refusing to overwrite existing file: %s (use --force)"
+                        % output_path
+                    )
+                )
+                return 2
             except OSError as error:
                 err.write(error_json("cannot write %s: %s" % (output_path, error)))
                 return 2
@@ -870,7 +950,7 @@ def execute(
         else:
             write_success(out, response_body)
         return 0
-    err.write(response_body)
+    err.write(error_body(status, response_body))
     return exit_code_for(status) if failure_code is None else failure_code
 
 
@@ -909,6 +989,7 @@ def metavar(field):
         "CONTENT": "TEXT",
         "FILE": "FILE",
         "BOOLEAN": "true|false",
+        "STDIN": "STDIN",
     }[field["kind"]]
 
 
@@ -930,6 +1011,8 @@ def body_usage(spec):
                 fragments.append("(%s)" % alternatives)
             else:
                 fragments.append("[%s]" % alternatives)
+        elif field["kind"] == STDIN:
+            fragments.append("[--%s]" % field["flag"])
         elif field["flag"] in required:
             fragments.append("--%s %s" % (field["flag"], metavar(field)))
         else:
@@ -960,6 +1043,7 @@ def action_usage(resource, action_name, spec):
         parts.append("--url URL")
     if spec.get("format") or spec.get("stream"):
         parts.append("[-o FILE]")
+        parts.append("[--force]")
     return " ".join(parts)
 
 
@@ -1029,6 +1113,14 @@ def action_help(resource, action_name, spec):
             [
                 "without -o, raw response bytes go to stdout unchanged (no newline added)",
                 '-o FILE : write raw bytes to FILE; stdout prints {"saved_to": "<path>"}',
+                "--force : required to overwrite an existing -o target (default: refuse)",
+            ]
+        )
+    if any(field["kind"] == STDIN for field in spec.get("body", ())):
+        lines.extend(
+            [
+                "",
+                "--password-stdin : read the password from stdin (never from argv)",
             ]
         )
     return "\n".join(lines) + "\n"
@@ -1103,6 +1195,7 @@ def top_help():
             "  6  rate limit retries exhausted (429)",
             "  7  network, timeout or TLS error",
             "  8  server error (5xx)",
+            "  9  unexpected redirect (3xx)",
             "",
             'Run "bookstack-api-cli.py <resource> --help" for details.',
         ]
@@ -1197,13 +1290,38 @@ def apply_positional_args(resource, action_name, spec, positional, pairs):
     return path, pairs
 
 
+def resolve_file_path(path):
+    root = os.environ.get(ENV_FILE_ROOT)
+    if root:
+        real_root = os.path.realpath(root)
+        real_path = os.path.realpath(path)
+        if real_path != real_root and not real_path.startswith(real_root + os.sep):
+            raise UsageError(
+                "file %s is outside %s" % (path, ENV_FILE_ROOT)
+            )
+    return path
+
+
+def check_file_size(path):
+    try:
+        size = os.path.getsize(path)
+    except OSError as error:
+        raise UsageError("cannot read %s: %s" % (path, error))
+    if size > MAX_FILE_BYTES:
+        raise UsageError(
+            "file %s exceeds %d bytes" % (path, MAX_FILE_BYTES)
+        )
+
+
 def read_text(value):
     if value.startswith("@"):
+        path = resolve_file_path(value[1:])
+        check_file_size(path)
         try:
-            with open(value[1:], "r", encoding="utf-8") as handle:
+            with open(path, "r", encoding="utf-8") as handle:
                 return handle.read()
         except (OSError, UnicodeDecodeError) as error:
-            raise UsageError("cannot read %s: %s" % (value[1:], error))
+            raise UsageError("cannot read %s: %s" % (path, error))
     return value
 
 
@@ -1211,12 +1329,22 @@ def read_json_source(value):
     if value == "-":
         return sys.stdin.buffer.read()
     if value.startswith("@"):
+        path = resolve_file_path(value[1:])
+        check_file_size(path)
         try:
-            with open(value[1:], "rb") as handle:
+            with open(path, "rb") as handle:
                 return handle.read()
         except OSError as error:
-            raise UsageError("cannot read %s: %s" % (value[1:], error))
+            raise UsageError("cannot read %s: %s" % (path, error))
     raise UsageError("--json expects @file or -")
+
+
+def read_stdin_value(flag):
+    try:
+        text = sys.stdin.buffer.read().decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise UsageError("--%s expects UTF-8 on stdin: %s" % (flag, error))
+    return text.rstrip("\r\n")
 
 
 class MultipartFile(NamedTuple):
@@ -1227,6 +1355,8 @@ class MultipartFile(NamedTuple):
 
 
 def read_file_source(path, key):
+    path = resolve_file_path(path)
+    check_file_size(path)
     try:
         with open(path, "rb") as handle:
             content = handle.read()
@@ -1384,6 +1514,7 @@ def parse_body_flags(tokens, spec):
     values = {}
     files = {}
     json_source = None
+    stdin_field = None
     index = 0
     while index < len(tokens):
         token = tokens[index]
@@ -1398,6 +1529,12 @@ def parse_body_flags(tokens, spec):
             field = fields.get(flag)
             if field is None:
                 raise UsageError("unknown flag: %s" % token)
+            if field["kind"] == STDIN:
+                if stdin_field is not None:
+                    raise UsageError("--%s given more than once" % flag)
+                stdin_field = field
+                index += 1
+                continue
             value, index = take_value(tokens, index, flag)
             if field["kind"] == FILE:
                 if value == "null":
@@ -1409,6 +1546,12 @@ def parse_body_flags(tokens, spec):
         else:
             positional.append(token)
             index += 1
+    if stdin_field is not None:
+        if json_source == "-":
+            raise UsageError(
+                "--%s cannot be combined with --json -" % stdin_field["flag"]
+            )
+        values[stdin_field["key"]] = read_stdin_value(stdin_field["flag"])
     return positional, json_source, values, files
 
 
@@ -1417,6 +1560,7 @@ def parse_stream_flags(tokens, spec):
     fmt = None
     output_path = None
     url = None
+    force = False
     index = 0
     while index < len(tokens):
         token = tokens[index]
@@ -1432,6 +1576,9 @@ def parse_stream_flags(tokens, spec):
             if url is not None:
                 raise UsageError("--url given more than once")
             url = value
+        elif token == "--force":
+            force = True
+            index += 1
         elif token == "-o":
             if index + 1 >= len(tokens):
                 raise UsageError("-o requires a FILE")
@@ -1454,7 +1601,7 @@ def parse_stream_flags(tokens, spec):
             )
     if spec.get("url_arg") and url is None:
         raise UsageError("url-data requires --url URL")
-    return positional, output_path, fmt, url
+    return positional, output_path, fmt, url, force
 
 
 def build_body(json_source, values):
@@ -1525,7 +1672,7 @@ def run_action(resource, args, out, err):
         path = path + ("?" + query if query else "")
         return execute(spec["method"], path, None, out, err)
     if spec.get("format") or spec.get("stream"):
-        positional, output_path, fmt, url = parse_stream_flags(rest, spec)
+        positional, output_path, fmt, url, force = parse_stream_flags(rest, spec)
         if spec.get("arg"):
             if len(positional) != 1:
                 raise UsageError(
@@ -1551,6 +1698,7 @@ def run_action(resource, args, out, err):
             err,
             stream=spec.get("stream", False),
             output_path=output_path,
+            force=force,
         )
     positional, json_source, values, files = parse_body_flags(rest, spec)
     if spec.get("args"):
@@ -1643,6 +1791,13 @@ def main(argv=None):
         err.write(("usage error: %s\n" % error).encode("utf-8"))
         err.write(('Run "bookstack-api-cli.py --help" for usage.\n').encode("utf-8"))
         return 2
+    except Exception as error:
+        if os.environ.get(ENV_DEBUG) == "1":
+            raise
+        err.write(
+            error_json("unexpected error: %s: %s" % (type(error).__name__, error))
+        )
+        return 7
 
 
 if __name__ == "__main__":

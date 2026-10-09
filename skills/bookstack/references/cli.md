@@ -56,6 +56,10 @@ The full actions of the 16 resources are in `SKILL.md`'s "Resources and actions"
 - Top-level field flags (such as `--name`, `--book-id`, `--chapter-id`, `--markdown`) override the same-named
   top-level keys in `--json`; no deep merge.
 - Content-type flags support `@file` to read a file (such as `--markdown @doc.md`); otherwise the value is literal.
+  `@file` reads a local file from the machine running the CLI; `BOOKSTACK_FILE_ROOT` (if set) confines reads to
+  that directory (symlink- and `..`-safe), and files larger than 25 MiB are rejected.
+- User passwords never appear in argv: `users create`/`users update` take `--password-stdin`, read once from
+  stdin (cannot be combined with `--json -`).
 - File upload flags (`--image @cover.png`, `--file @x.zip`) automatically switch to multipart/form-data;
   all other requests use JSON.
 - IDs are positional; list queries use `--count`/`--offset`/`--sort`/`--filter`
@@ -74,16 +78,35 @@ The full actions of the 16 resources are in `SKILL.md`'s "Resources and actions"
 - The CLI keeps no local state: there is no session and no logout; unset the
   variables to log out. `auth --help` documents both actions.
 
+## Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `BOOKSTACK_URL` | Base URL; must be `https://` with a host and no userinfo. |
+| `BOOKSTACK_TOKEN_ID` | API token id. |
+| `BOOKSTACK_TOKEN_SECRET` | API token secret. |
+| `BOOKSTACK_ALLOW_INSECURE=1` | Allow a plain `http://` base URL (trusted local instances only). |
+| `BOOKSTACK_FILE_ROOT` | Confine `@file` reads to this directory (realpath-checked). |
+| `BOOKSTACK_DEBUG=1` | Re-raise unexpected exceptions with a traceback instead of structured JSON. |
+
 ## stdout/stderr/exit codes
 
 - 2xx: stdout = the API response bytes unchanged (byte-for-byte, no re-serialization), trailing newline guaranteed;
-  204 → no stdout output.
+  204 → no stdout output. Control bytes (C0 except TAB/LF, and DEL) are stripped from this text path only;
+  streaming binary output is never altered.
 - Streaming endpoints (`export`, `image-gallery`'s `data`/`url-data`): raw bytes go to stdout by default;
   with `-o FILE` they are written to the file and stdout prints `{"saved_to": "<path>"}`. Never base64-wrapped.
-- Non-2xx (including 429 retries exhausted): stdout stays empty; stderr prints the API error JSON unchanged;
+  `-o` refuses to overwrite an existing path (including a symlink) unless `--force` is passed; new files are
+  created with mode `0600` and symlinks are never followed.
+- Non-2xx (including 429 retries exhausted): stdout stays empty; stderr prints the API error JSON unchanged,
+  or a wrapped `{"error":{"message":"<status> non-JSON response from server"}}` when the body is not JSON;
   retry warnings also go to stderr.
+- Unexpected errors are reported as `{"error":{"message":"unexpected error: ..."}}`, exit 7; the Python
+  traceback is printed only when `BOOKSTACK_DEBUG=1`.
 - `--help` → stdout, exit 0; usage errors → stderr, exit 2.
 - Timeout defaults to 30 seconds per request; TLS certificate verification is always on (no flag to disable).
+- `BOOKSTACK_URL` must be `https://`, include a host, and contain no userinfo; `BOOKSTACK_ALLOW_INSECURE=1`
+  permits plain `http` for trusted local instances.
 - Diagnostics and retry warnings go only to stderr; stdout always contains only results.
 
 | Exit code | Meaning |
@@ -96,11 +119,12 @@ The full actions of the 16 resources are in `SKILL.md`'s "Resources and actions"
 | 6 | Rate-limit retries exhausted (429) |
 | 7 | Network/timeout/TLS |
 | 8 | Server error (5xx) |
+| 9 | Unexpected redirect (3xx) |
 
 ## Retries and pagination
 
-- Only 429 is retried: with `Retry-After`, use its seconds; otherwise 1s/2s/4s backoff; at most 3 retries,
-  then exit 6.
+- Only 429 is retried: with `Retry-After`, use its seconds (capped at 60s); otherwise 1s/2s/4s backoff;
+  at most 3 retries, then exit 6.
 - All other errors fail fast (no retries, no automatic compensation); 5xx is not retried.
 - No automatic pagination: `list` is one call, one request; `--count`/`--offset`/`--sort`/`--filter` pass
   through unchanged, and the agent loops itself using the response's `total`. `search` uses `--page`/`--count`
